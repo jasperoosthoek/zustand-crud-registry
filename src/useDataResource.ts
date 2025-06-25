@@ -78,10 +78,10 @@ export type SetSubState<T, V extends ValidConfig<T>> = (obj: Partial<V['state']>
 
 export function useDataResource<
   T,
-  K,
-  C extends Config<T>
+  K extends string,
+  C extends Config<K, T>
 >(
-  store: CrudStore<T, K, C, ValidatedConfig<T, C>>,
+  store: CrudStore<T, K, C, ValidatedConfig<K, T, C>>,
   options?: {
     skip?: boolean;
     params?: Record<string, string | number | boolean>;
@@ -192,7 +192,7 @@ export function useDataResource<
   return act;
 };
 
-  type V = ValidatedConfig<T, C>;
+  type V = ValidatedConfig<K, T, C>;
   type S = C['state'];
 
   const actions: Record<string, unknown> = {
@@ -215,8 +215,8 @@ export function useDataResource<
 
   function buildCustomActions<
     T,
-    C extends Config<T>,
-    V extends ValidatedConfig<T, C>
+    C extends Config<K, T>,
+    V extends ValidatedConfig<K, T, C>
   >(
     store: CrudStore<T, any, C, V>,
     loadingState: Record<string, LoadingStateValue>

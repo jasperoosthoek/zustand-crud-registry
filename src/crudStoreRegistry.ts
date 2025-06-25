@@ -22,10 +22,10 @@ export type CrudState<T, S> = {
 
 export type CrudStore<
   T,
-  K,
-  C extends Config<T>,
-  V extends ValidatedConfig<T, C>
-> = UseBoundStore<StoreApi<CrudState<T, Config<T>['state']>>> & {
+  K extends string,
+  C extends Config<K, T>,
+  V extends ValidatedConfig<K, T, C>
+> = UseBoundStore<StoreApi<CrudState<T, Config<K, T>['state']>>> & {
   key: K;
   config: V;
 };
@@ -37,14 +37,14 @@ export function createCrudStoreRegistry<Models extends Record<string, any>>() {
 
   function getOrCreateCrudStore<
     K extends Extract<keyof Models, string>,
-    C extends Config<Models[K]>,
-    V extends ValidatedConfig<Models[K], C>
+    C extends Config<K, Models[K]>,
+    V extends ValidatedConfig<K, Models[K], C>
   >(
     key: K,
     rawConfig: C
   ): CrudStore<Models[K], K, C, V> {
     if (!storeRegistry[key]) {
-      const validated = validateConfig<Models[K], C>(rawConfig);
+      const validated = validateConfig<K, Models[K], C>(rawConfig);
       const { byKey } = validated;
 
       const store: CrudStore<Models[K], K, C, typeof validated> = Object.assign(
@@ -128,10 +128,10 @@ export function createCrudStoreRegistry<Models extends Record<string, any>>() {
   } as {
     getOrCreateCrudStore: <
       K extends Extract<keyof Models, string>,
-      C extends Config<Models[K]>
+      C extends Config<K, Models[K]>
     >(
       key: K,
       config: C
-    ) => CrudStore<Models[K], K, C, ValidatedConfig<Models[K], C>>;
+    ) => CrudStore<Models[K], K, C, ValidatedConfig<K, Models[K], C>>;
   };
 };

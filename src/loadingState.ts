@@ -20,9 +20,9 @@ export const defaultLoadingState: LoadingStateValue = {
 // Function to use within callbacks
 export function getLoadingState<
   T,
-  K,
-  C extends Config<T>,
-  V extends ValidatedConfig<T, C>
+  K extends string,
+  C extends Config<K, T>,
+  V extends ValidatedConfig<K, T, C>
 >(
   store: CrudStore<T, K, C, V>,
   action: string,
@@ -37,9 +37,9 @@ export function getLoadingState<
 // Hook
 export function useLoadingState<
   T,
-  K,
-  C extends Config<T>,
-  V extends ValidatedConfig<T, C>
+  K extends string,
+  C extends Config<K, T>,
+  V extends ValidatedConfig<K, T, C>
 >(
   store: CrudStore<T, K, C, V>,
   action: string
@@ -49,9 +49,9 @@ export function useLoadingState<
 
 export function setLoadingState<
   T,
-  K,
-  C extends Config<T>,
-  V extends ValidatedConfig<T, C>
+  K extends string,
+  C extends Config<K, T>,
+  V extends ValidatedConfig<K, T, C>
 >(
   store: CrudStore<T, K, C, V>,
   action: string,
@@ -63,9 +63,9 @@ export function setLoadingState<
 
 export function initiateAction<
   T,
-  K,
-  C extends Config<T>,
-  V extends ValidatedConfig<T, C>
+  K extends string,
+  C extends Config<K, T>,
+  V extends ValidatedConfig<K, T, C>
 >(
   store: CrudStore<T, K, C, V>,
   action: string,
@@ -86,9 +86,9 @@ export function initiateAction<
 
 export function finishAction<
   T,
-  K,
-  C extends Config<T>,
-  V extends ValidatedConfig<T, C>
+  K extends string,
+  C extends Config<K, T>,
+  V extends ValidatedConfig<K, T, C>
 >(
   store: CrudStore<T, K, C, V>,
   action: string,
@@ -108,9 +108,9 @@ export function finishAction<
 
 export function actionError<
   T,
-  K,
-  C extends Config<T>,
-  V extends ValidatedConfig<T, C>
+  K extends string,
+  C extends Config<K, T>,
+  V extends ValidatedConfig<K, T, C>
 >(
   store: CrudStore<T, K, C, V>,
   action: string,

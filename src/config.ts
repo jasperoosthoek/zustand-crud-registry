@@ -73,7 +73,7 @@ export type CustomActions<T> = {
   [action: string]: CustomActionConfig<T>;
 }
 
-export type ValidCustomActions<T, C extends Config<T>> = {
+export type ValidCustomActions<K extends string, T, C extends Config<K, T>> = {
   [K in keyof C['customActions']]: (
     CustomActionConfig<T>
   );
@@ -93,7 +93,8 @@ export type Actions<T> = {
   select?: false | 'single' | 'multiple';
 }
 
-export type Config<T> = {
+
+export type BaseConfig<T> = {
   actions?: Actions<T>;
   id?: string;
   parseIdToInt?: boolean;
@@ -105,18 +106,22 @@ export type Config<T> = {
   onError?: OnError;
 };
 
-type ActionKeys<T, TConfig extends Config<T>> =
+export interface Config<K extends string, T> extends BaseConfig<T> {}
+
+
+type ActionKeys<K extends string, T, TConfig extends Config<K, T>> =
   keyof TConfig['actions'];
 
 type ActionConfigIfExists<
+  K extends string, 
   T,
-  TConfig extends Config<T>,
+  TConfig extends Config<K, T>,
   TActionName extends keyof Actions<T>
-> = TActionName extends keyof ActionKeys<T, TConfig>
+> = TActionName extends keyof ActionKeys<K, T, TConfig>
     ? (TConfig['actions'][TActionName] extends true | object ? Actions<T>[TActionName] : never)
       : never;
 
-export type ValidatedConfig<T, TConfig extends Config<T>> = {
+export type ValidatedConfig<K extends string, T, TConfig extends Config<K, T>> = {
   id: string;
   byKey: string;
   parseIdToInt: boolean;
@@ -126,11 +131,11 @@ export type ValidatedConfig<T, TConfig extends Config<T>> = {
   axios: AxiosInstance;
   onError: OnError | null;
 
-actions: {
-  [K in Extract<keyof TConfig['actions'], keyof Actions<T>>]: ActionConfigIfExists<T, TConfig, K>;
-};
+  actions: {
+    [A in Extract<keyof TConfig['actions'], keyof Actions<T>>]: ActionConfigIfExists<K, T, TConfig, A>;
+  };
 
-  customActions: ValidCustomActions<T, TConfig>;
+  customActions: ValidCustomActions<K, T, TConfig>;
   route: Route;
   selectedId?: string,
   selectedIds?: string,
@@ -153,11 +158,12 @@ export const getDetailRoute = (route: Route | null, id: string) => (
 );
 
 export const validateConfig = <
+  K extends string, 
   T,
-  C extends Config<T>,
+  C extends Config<K, T>,
 >(
   config: C
-): ValidatedConfig<T, C> => {
+): ValidatedConfig<K, T, C> => {
   const {
     // The id to use when perform crud actions
     id = 'id',
@@ -271,10 +277,10 @@ export const validateConfig = <
             },
           };
         },
-        {} as ValidCustomActions<T, C>
+        {} as ValidCustomActions<K, T, C>
       ),
     route,
-  } as ValidatedConfig<T, C>
+  } as ValidatedConfig<K, T, C>
 
   return newConfig;
 }
