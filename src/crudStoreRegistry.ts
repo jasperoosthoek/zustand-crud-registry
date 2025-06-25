@@ -1,0 +1,137 @@
+
+import { create, type StoreApi, type UseBoundStore } from "zustand";
+import { defaultLoadingState } from "./loadingState";
+import { validateConfig } from "./config";
+
+import type { LoadingStateValue } from "./loadingState";
+import type { Config, ValidatedConfig } from "./config";
+
+export type CrudState<T, S> = {
+  list: { [key: string]: T } | null;
+  count: number;
+  setList: (data: T[]) => void;
+  setCount: (count: number) => void;
+  setInstance: (instance: T, incrementCount?: boolean) => void;
+  updateInstance: (instance: T) => void;
+  deleteInstance: (instance: T) => void;
+  loadingState: { [key: string]: LoadingStateValue };
+  setLoadingState: (key: string, value: Partial<LoadingStateValue>) => void;
+  state: S;
+  setState: (subState: Partial<S>) => void;
+};
+
+export type CrudStore<
+  T,
+  K,
+  C extends Config<T>,
+  V extends ValidatedConfig<T, C>
+> = UseBoundStore<StoreApi<CrudState<T, Config<T>['state']>>> & {
+  key: K;
+  config: V;
+};
+
+export function createCrudStoreRegistry<Models extends Record<string, any>>() {
+  const storeRegistry: {
+    [K in keyof Models]?: Record<string, any> ;
+  } = {};
+
+  function getOrCreateCrudStore<
+    K extends Extract<keyof Models, string>,
+    C extends Config<Models[K]>,
+    V extends ValidatedConfig<Models[K], C>
+  >(
+    key: K,
+    rawConfig: C
+  ): CrudStore<Models[K], K, C, V> {
+    if (!storeRegistry[key]) {
+      const validated = validateConfig<Models[K], C>(rawConfig);
+      const { byKey } = validated;
+
+      const store: CrudStore<Models[K], K, C, typeof validated> = Object.assign(
+        create<CrudState<Models[K], C['state']>>((set) => ({
+          list: null,
+          count: 0,
+          setList: (data) => set({ list: Object.fromEntries(data.map((obj) => [obj[byKey], obj]))}),
+          setInstance: (instance: Models[K], incrementCount?: boolean) =>
+            set((state) => {
+              if (!state.list) return {};
+
+              return {
+                list: {
+                  ...state.list,
+                  [instance[byKey]]: instance,
+                },
+                ...incrementCount ? { count: state.count + 1 } : {}
+              };
+            }),
+          updateInstance: (instance: Models[K]) =>
+            set((state) => {
+              if (!state.list) return {};
+
+              return {
+                list: {
+                  ...state.list,
+                  [instance[byKey]]: {
+                    ...state.list[byKey] || {},
+                    ...instance,
+                  },
+                },
+              };
+            }),
+          deleteInstance: (instance: Models[K]) =>
+            set((state) => {
+              if (!state.list) return {};
+
+              const newList = { ...state.list };
+              if (newList[instance[byKey as string]]) {
+                delete newList[instance[byKey as string]];
+              }
+
+              return {
+                list: newList,
+                count: state.count > 0 ? state.count - 1 : 0,
+              };
+            }),
+          setCount: (count) => set({ count }),
+          loadingState: {},
+          setLoadingState: (key, value) =>
+            set((state) => ({
+              loadingState: {
+                ...state.loadingState,
+                [key]: {
+                  ...defaultLoadingState,
+                  ...state.loadingState[key]
+                   ? { ...state.loadingState[key], sequence: state.loadingState[key].sequence + 1 }
+                   : {}, ...value },
+              },
+            })
+          ),
+          state: rawConfig.state,
+          setState: (subState: Partial<C['state']>) => set(
+            (state) => ({
+              state: {
+                ...state.state || {},
+                ...subState,
+              }
+            }))
+        })),
+        { key, config: validated } 
+      );
+      
+      storeRegistry[key] = store;
+    }
+
+    return storeRegistry[key] as CrudStore<Models[K], K, C, V>;
+  }
+  return {
+    getOrCreateCrudStore,
+  } as {
+    getOrCreateCrudStore: <
+      K extends Extract<keyof Models, string>,
+      C extends Config<Models[K]>
+    >(
+      key: K,
+      config: C
+    ) => CrudStore<Models[K], K, C, ValidatedConfig<Models[K], C>>;
+  };
+};
