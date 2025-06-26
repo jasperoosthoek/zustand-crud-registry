@@ -11,3 +11,6 @@
 
 ##### Version 0.0.4
 - Fix type of optional `record` in `useCrud`
+
+##### Version 0.0.5
+- Fix possible`null` of optional `record` in `useCrud`

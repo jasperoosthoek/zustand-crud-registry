@@ -259,7 +259,7 @@ export function useCrud<
   ) & CustomActionFunctions<T, V> 
    & (
       C extends { includeRecord: true }
-        ? {record: { [key: string]:  T} } | null
+        ? {record: { [key: string]:  T} | null } 
         : {}
     )
 
