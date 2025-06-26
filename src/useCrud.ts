@@ -257,7 +257,11 @@ export function useCrud<
         setState: (subState: Partial<S>) => void;
       }
   ) & CustomActionFunctions<T, V> 
-   & (C['includeRecord'] extends true ? { record: Record<K, T> | null } : {})
+   & (
+      C extends { includeRecord: true }
+        ? {record: { [key: string]:  T} } | null
+        : {}
+    )
 
   return output;
 }

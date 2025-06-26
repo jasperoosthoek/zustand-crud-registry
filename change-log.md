@@ -8,3 +8,6 @@
 ##### Version 0.0.3
 - Refactor imports names
 - New `includeRecord` in config to output full `record` in hook
+
+##### Version 0.0.4
+- Fix type of optional `record` in `useCrud`
