@@ -103,6 +103,7 @@ export type BaseConfig<T> = {
   route: Route;
   customActions?: CustomActions<T>;
   axios: AxiosInstance;
+  includeRecord?: boolean;
   onError?: OnError;
 };
 
@@ -138,6 +139,7 @@ export type ValidatedConfig<K extends string, T, TConfig extends Config<K, T>> =
   customActions: ValidCustomActions<K, T, TConfig>;
   route: Route;
   selectedId?: string,
+  includeRecord: boolean
   selectedIds?: string,
 }
 
@@ -174,6 +176,7 @@ export const validateConfig = <
     route,
     customActions = {},
     onError = null,
+    includeRecord = false,
   } = config;
 
   const actions =
@@ -199,6 +202,7 @@ export const validateConfig = <
     state: state as { [K in keyof C['state']]: C['state'][K] },
     axios: config.axios,
     onError,
+    includeRecord,
     actions: {
       ...actions.getList
         ? { getList: {
@@ -302,6 +306,7 @@ export type ValidConfig<T> = {
     // select: false | 'single' | 'multiple';
     }
   customActions?: CustomActions<T>;
+  includeRecord: boolean;
   route?: Route;
   selectedId?: string,
   selectedIds?: string,

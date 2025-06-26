@@ -1,4 +1,4 @@
 export * from './config';
-export * from './crudStoreRegistry';
+export * from './createStoreRegistry';
 export * from './loadingState';
-export * from './useDataResource';
+export * from './useCrud';

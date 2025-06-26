@@ -3,7 +3,7 @@ import { defaultLoadingState, initiateAction, finishAction, actionError, getLoad
 
 import type { AxiosRequestConfig, Method } from 'axios'
 import type { LoadingStateValue } from "./loadingState";
-import type { CrudStore } from "./crudStoreRegistry";
+import type { CrudStore } from "./createStoreRegistry";
 import type { Config, ValidatedConfig, ValidConfig, AsyncFunction, Route } from "./config"
 
 export const callIfFunc = (func: any, ...params: any[]) => {
@@ -76,7 +76,7 @@ const getAxiosConfig = ({
 
 export type SetSubState<T, V extends ValidConfig<T>> = (obj: Partial<V['state']>) => void;
 
-export function useDataResource<
+export function useCrud<
   T,
   K extends string,
   C extends Config<K, T>
@@ -87,7 +87,7 @@ export function useDataResource<
     params?: Record<string, string | number | boolean>;
   }
 ) {
-  const list = store((s) => s.list);
+  const record = store((s) => s.record);
   const setList = store((s) => s.setList);
   const count = store((s) => s.count);
   const stateData = store((s) => s.state);
@@ -234,9 +234,10 @@ export function useDataResource<
   const customActionConfig = buildCustomActions(store, loadingState);
 
   const output = {
-    list: list ? Object.values(list) : null,
+    list: record ? Object.values(record) : null,
     setList,
     count,
+    ...store.config.includeRecord ? { record } : {},
     ...store.config.state
       ? {
         state: stateData,
@@ -246,7 +247,7 @@ export function useDataResource<
     ...customActionConfig,
   } as {
     list: T[] | null;
-    setList: (list: T[]) => void;
+    setList: (record: T[]) => void;
     count: number;
   } & ConditionalActionFunctions<T, V> & (
   keyof S extends never
@@ -255,7 +256,8 @@ export function useDataResource<
         state: S;
         setState: (subState: Partial<S>) => void;
       }
-  ) & CustomActionFunctions<T, V>
+  ) & CustomActionFunctions<T, V> 
+   & (C['includeRecord'] extends true ? { record: Record<K, T> | null } : {})
 
   return output;
 }

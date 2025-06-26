@@ -1,4 +1,4 @@
-import type { CrudStore } from "./crudStoreRegistry";
+import type { CrudStore } from "./createStoreRegistry";
 import type { Config, ValidatedConfig } from "./config"
 
 export type LoadingStateValue = {
