@@ -20,3 +20,6 @@
 - Change fieldname `onResponse`
 - Make `PrepareOptions` no longer optional in type
 - New `patchList` function on store
+
+##### Version 0.0.7
+- Export `CustomActionFunction` type

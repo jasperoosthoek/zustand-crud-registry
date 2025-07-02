@@ -22,7 +22,7 @@ export type AsyncFuncProps = {
 
 export type onResponse = { onResponse?: (data: any) => void };
 
-type CustomActionFunction<T> = ((data?: any, args?: AsyncFuncProps) => Promise<T | void>) & onResponse & LoadingStateValue
+export type CustomActionFunction<T> = ((data?: any, args?: AsyncFuncProps) => Promise<T | void>) & onResponse & LoadingStateValue
 
 export type ActionFunctions<T> = {
   get: ((data: any, args?: AsyncFuncProps) => Promise<T | void>) & onResponse & LoadingStateValue;
