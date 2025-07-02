@@ -3,24 +3,19 @@ import type { Method, AxiosInstance } from "axios";
 export type OnError = (error: any) => void;
 
 export type DetailRoute = string | ((instance: any, { args, 
-  // getState,
    params }: RouteOptions) => string);
 export type RouteOptions = {
   args?: any;
   params?: any;
-  // getState: GetState,
 };
 export type Route = string | ((data: any, { args, 
-  // getState,
    params }: RouteOptions) => string);
 
 export type PrepareOptions = {
   args?: any;
   params?: any;
-  // getState: GetState,
 }
-export type Prepare = (obj: any, options?: PrepareOptions) => any;
-
+export type Prepare = (obj: any, options: PrepareOptions) => any;
 
 type PrepareResponseOptions = {
   args: any,
@@ -276,6 +271,7 @@ export const validateConfig = <
             ...o,
             [key]: {
               ...rest,
+              route,
               onError: onErrorOverride || onError,
               method,
             },

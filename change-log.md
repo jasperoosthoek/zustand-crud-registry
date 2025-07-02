@@ -13,4 +13,10 @@
 - Fix type of optional `record` in `useCrud`
 
 ##### Version 0.0.5
-- Fix possible`null` of optional `record` in `useCrud`
+- Fix possible `null` of optional `record` in `useCrud`
+
+##### Version 0.0.6
+- Fix `customActions` config losing their `route` field
+- Change fieldname `onResponse`
+- Make `PrepareOptions` no longer optional in type
+- New `patchList` function on store

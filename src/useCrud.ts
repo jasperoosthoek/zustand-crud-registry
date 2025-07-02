@@ -20,16 +20,16 @@ export type AsyncFuncProps = {
   args?: any;
 }
 
-export type SideEffects = { sideEffects?: (data: any) => void };
+export type onResponse = { onResponse?: (data: any) => void };
 
-type CustomActionFunction<T> = ((data?: any, args?: AsyncFuncProps) => Promise<T | void>) & SideEffects & LoadingStateValue
+type CustomActionFunction<T> = ((data?: any, args?: AsyncFuncProps) => Promise<T | void>) & onResponse & LoadingStateValue
 
 export type ActionFunctions<T> = {
-  get: ((data: any, args?: AsyncFuncProps) => Promise<T | void>) & SideEffects & LoadingStateValue;
-  getList: ((args?: AsyncFuncProps) => Promise<T[] | void>) & SideEffects & LoadingStateValue;
-  create: ((instance: Partial<T>, args?: AsyncFuncProps) => Promise<T | void>) & SideEffects & LoadingStateValue;
-  update: ((instance: Partial<T>, args?: AsyncFuncProps) => Promise<T | void>) & SideEffects & LoadingStateValue;
-  delete: ((instance: Partial<T>, args?: AsyncFuncProps) => Promise<void>) & SideEffects & LoadingStateValue;
+  get: ((data: any, args?: AsyncFuncProps) => Promise<T | void>) & onResponse & LoadingStateValue;
+  getList: ((args?: AsyncFuncProps) => Promise<T[] | void>) & onResponse & LoadingStateValue;
+  create: ((instance: Partial<T>, args?: AsyncFuncProps) => Promise<T | void>) & onResponse & LoadingStateValue;
+  update: ((instance: Partial<T>, args?: AsyncFuncProps) => Promise<T | void>) & onResponse & LoadingStateValue;
+  delete: ((instance: Partial<T>, args?: AsyncFuncProps) => Promise<void>) & onResponse & LoadingStateValue;
   custom: CustomActionFunction<T>;
 };
 
@@ -135,8 +135,8 @@ export function useCrud<
         axiosConfig, 
         args,
         prepare,
-      });
-
+      })
+      
       const id = data?.id
       await initiateAction(
         store,
@@ -175,7 +175,7 @@ export function useCrud<
         }
         
         await finishAction(store, loadingStateKey); 
-        callIfFunc(act.sideEffects, responseData);
+        callIfFunc(act.onResponse, responseData);
         callIfFunc(actionCallback, responseData);
         callIfFunc(callback, responseData);
 
