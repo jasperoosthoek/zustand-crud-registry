@@ -88,7 +88,6 @@ export function useCrud<
   }
 ) {
   const record = store((s) => s.record);
-  const setList = store((s) => s.setList);
   const count = store((s) => s.count);
   const stateData = store((s) => s.state);
   const setState = store((s) => s.setState);
@@ -235,7 +234,6 @@ export function useCrud<
 
   const output = {
     list: record ? Object.values(record) : null,
-    setList,
     count,
     ...store.config.includeRecord ? { record } : {},
     ...store.config.state
@@ -247,7 +245,6 @@ export function useCrud<
     ...customActionConfig,
   } as {
     list: T[] | null;
-    setList: (record: T[]) => void;
     count: number;
   } & ConditionalActionFunctions<T, V> & (
   keyof S extends never

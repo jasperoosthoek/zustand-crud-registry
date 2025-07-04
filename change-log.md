@@ -23,3 +23,7 @@
 
 ##### Version 0.0.7
 - Export `CustomActionFunction` type
+
+##### Version 0.0.8
+- Remove `setList` from output of `useCrud` hook
+- New `useStore` hook that returns all the store functions and data as reactive elements"
