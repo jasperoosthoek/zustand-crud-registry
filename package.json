@@ -1,6 +1,6 @@
 {
     "name": "@jasperoosthoek/zustand-crud-registry",
-    "version": "0.0.8",
+    "version": "0.0.9",
     "author": "jasperoosthoek",
     "license": "MIT",
     "repository": "https://github.com/jasperoosthoek/zustand-crud-registry",
@@ -33,8 +33,8 @@
     },
     "peerDependencies": {
         "axios": "^1.6.2",
-        "react": "19.0.0",
-        "react-dom": "19.0.0",
+        "react": "^19.1.0",
+        "react-dom": "^19.1.0",
         "zustand": "^5.0.5"
     }
 }

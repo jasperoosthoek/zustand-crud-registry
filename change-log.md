@@ -27,3 +27,6 @@
 ##### Version 0.0.8
 - Remove `setList` from output of `useCrud` hook
 - New `useStore` hook that returns all the store functions and data as reactive elements
+
+##### Version 0.0.9
+- Upgrade to React@19.1.0
