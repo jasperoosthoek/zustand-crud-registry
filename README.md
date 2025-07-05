@@ -1,8 +1,8 @@
 ### Zustand CRUD Registry
 
-Say you love to use React would also like to manage data from a database that you need to get from a backend? With a few lines of code you set up a complete *CRUD* which stands for *Create*, *Retrieve*, *Update* and *Delete*. By using this node package, all the data record is retrieved from the backend is stored in a Zustand store. You can get a list of items from the backend api, create, update and delete items while your React components are automatically updated and have access to loading state and error handling.
+Say you love to create frontends using React and would also like to manage data from a database that you need to get from a backend? With a few lines of code you set up a complete *CRUD* which stands for *Create*, *Retrieve*, *Update* and *Delete*. By using this node package, all the data which is retrieved from the backend is stored in a Zustand store. You can get a list of items from the store, create, update and delete items while your React components are automatically updated and have access to loading state and error handling.
 
-A [Dashboard Demo](https://github.com/jasperoosthoek/dashboard-demo) repository and [live demo](https://dashboard-demo-olive-eight.vercel.app/) is available that showcases that this module is capable of including many code code examples.
+A [Dashboard Demo](https://github.com/jasperoosthoek/dashboard-demo) repository and [live demo](https://dashboard-demo-olive-eight.vercel.app/) is available that showcases what this module is capable of including many code examples.
 
 First install:
 
@@ -11,7 +11,7 @@ npm install @jasperoosthoek/zustand-crud-registry zustand axios
 
 ```
 
-A Zustand store registry needs to be created based key name and Typescript type of the entity it serves, for instance Notes and Roles:
+A Zustand store registry needs to be created based on the `key` name and Typescript type of the entity it serves, for instance Notes and Roles:
 
 ```typescript
 import { createStoreRegistry } from "@jasperoosthoek/zustand-crud-registry";
@@ -75,8 +75,8 @@ export const notesStore = getOrCreateStore(
       otherValue: 42,
     },
     customActions: {
-      // Custom move function to handle api call of, for instance, drag and drop. To handle a response
-      // and trigger an update, a custom hook is needed: see bolow
+      // Include a custom move function that handles the api call of, for instance, drag and drop.
+      // To handle a response and trigger an update, a custom hook is needed: see bolow
       move: { 
         route: ({ id }: Note) => `/notes/${id}$/move`,
         method: 'put',
@@ -89,7 +89,7 @@ export const notesStore = getOrCreateStore(
 
 In fact, the above is all the boilerplate you need to provide two complete *CRUD* operations, store date, update the store automatically and provide reactive hooks that can be used inside the components. Note that the `getOrCreateStore` will only create the store once and will need to be provided by an inline constant for the Typescript types to work.
 
-Routes are handled automatically. When `'/roles'` is provided, the `update` will be `'/roles/42'`, and when `'/roles/'` is used, `update` will perform an api call to `'/roles/42/'`. The id is automatically taken from the object. If it's for instance `'slug'` then add `id: 'slug',` to the config.
+Routes are handled automatically. When `'/roles'` is provided, the `update` will be `'/roles/42'`, and when `'/roles/'` is used, `update` will perform an api call to `'/roles/42/'`. The id is automatically taken from the object. If it's for instance `'slug'` then add `id: 'slug',` to the config like you see in the example.
 
 In fact, the boilerplate can be reduced even more by defining a `defaultConfig` object and using it to define all stores:
 
@@ -167,7 +167,7 @@ const NoteItem = (note: Note) => {
 
 In the above example the delete function performs an api call to the backend and triggers `isLoading === true`. When the item is succesfully deleted, it is deleted from the Zustand store and all React components are immediately updated. The same goes for the `create` and `update` functions. The items are automatically created in the store or updated.
 
-The `zustand-crud-registry` also allows for custom actions, in this case the `move` action that moved the object in the backend by modifying the `order` field. Using the `Django REST framework`, this can be done by using the [`django-ordered-model`](https://github.com/django-ordered-model/django-ordered-model). In fact, the application uses the same `above` and `below` functions as the aforementioned Django app. The custom actions don't have any dedicated action they perform to the store. However, this can be done by creating a dedicated hook. 
+The `zustand-crud-registry` also allows for custom actions, in this case the `move` action that moves the object in the backend by modifying the `order` field. Using the `Django REST framework`, this can be done by using the [`django-ordered-model`](https://github.com/django-ordered-model/django-ordered-model). In fact, the [Dashboard Demo](https://github.com/jasperoosthoek/dashboard-demo) app uses the same `above` and `below` functions as the aforementioned Django app. The custom actions don't have any dedicated action they perform to the store. However, this can be done by creating a dedicated hook. 
 
 Apart from `useCrud` which supplies all the *CRUD* operations, there is also a `useStore` hook which exposes all the functions and data of the store. These two hooks can be used to create dedicated more complicated hooks where, for instance handle the backend response of the non standard *move* operation which is triggered after drag 'n drop. In this case the backend returns a list of `id` and `order` values instead of the full object because nothing more is needed:
 
