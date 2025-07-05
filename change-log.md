@@ -26,4 +26,4 @@
 
 ##### Version 0.0.8
 - Remove `setList` from output of `useCrud` hook
-- New `useStore` hook that returns all the store functions and data as reactive elements"
+- New `useStore` hook that returns all the store functions and data as reactive elements
