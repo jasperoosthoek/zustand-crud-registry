@@ -164,7 +164,7 @@ export function useCrud<
           responseData = results;
 
         } else if (actionKey === 'create') {
-          await state.setInstance(response.data, true);
+          await state.setInstance(response.data);
 
         } else if (actionKey === 'update') {
           await state.updateInstance(response.data)

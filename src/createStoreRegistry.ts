@@ -12,7 +12,7 @@ export type CrudState<T, S> = {
   setList: (data: T[]) => void;
   patchList: (data: Partial<T>[]) => void;
   setCount: (count: number) => void;
-  setInstance: (instance: T, incrementCount?: boolean) => void;
+  setInstance: (instance: T) => void;
   updateInstance: (instance: T) => void;
   deleteInstance: (instance: T) => void;
   loadingState: { [key: string]: LoadingStateValue };
@@ -66,16 +66,14 @@ export function createStoreRegistry<Models extends Record<string, any>>() {
               });
               return { record };
             }),
-          setInstance: (instance: Models[K], incrementCount?: boolean) =>
+          setInstance: (instance: Models[K]) =>
             set((state) => {
-              if (!state.record) return {};
-
               return {
                 record: {
-                  ...state.record,
+                  ...state.record || {},
                   [instance[byKey]]: instance,
                 },
-                ...incrementCount ? { count: state.count + 1 } : {}
+                ...{ count: state.count + (state.record && state.record[instance[byKey]] ? 0 : 1) }
               };
             }),
           updateInstance: (instance: Models[K]) =>

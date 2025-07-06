@@ -30,3 +30,6 @@
 
 ##### Version 0.0.9
 - Upgrade to React@19.1.0
+
+##### Version 0.0.10
+- Fix: not updating after `get` action when the state is empty
