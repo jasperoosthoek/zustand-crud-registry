@@ -1,6 +1,8 @@
 # Zustand CRUD Registry
 
 [![npm version](https://badge.fury.io/js/%40jasperoosthoek%2Fzustand-crud-registry.svg)](https://badge.fury.io/js/%40jasperoosthoek%2Fzustand-crud-registry)
+[![Tests](https://github.com/jasperoosthoek/zustand-crud-registry/actions/workflows/test.yml/badge.svg)](https://github.com/jasperoosthoek/zustand-crud-registry/actions/workflows/test.yml)
+[![Coverage](https://codecov.io/gh/jasperoosthoek/zustand-crud-registry/branch/main/graph/badge.svg)](https://codecov.io/gh/jasperoosthoek/zustand-crud-registry)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/%3C%2F%3E-TypeScript-%230074c1.svg)](http://www.typescriptlang.org/)
 

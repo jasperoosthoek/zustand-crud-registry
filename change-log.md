@@ -33,3 +33,8 @@
 
 ##### Version 0.0.10
 - Fix: not updating after `get` action when the state is empty
+
+##### Version 0.0.11
+- Updated peerDependencies to require React 19+
+- Added CI/CD status badges to README
+- New up test files and documentation

@@ -1,10 +1,13 @@
 {
   "exclude": [
     "node_modules",
+    "**/*.test.ts",
     "**/*.spec.ts",
+    "src/__tests__/**/*",
+    "dist"
   ],
   "include": [
-    "src/**/*",
+    "src/**/*"
   ],
   "compilerOptions": {
     "outDir": "./dist/",
@@ -16,6 +19,8 @@
     "allowJs": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "skipLibCheck": true,
+    "strict": true
   }
 }

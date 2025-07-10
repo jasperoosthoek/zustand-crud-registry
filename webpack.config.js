@@ -2,25 +2,42 @@ const path = require('path');
 const pkg = require('./package.json');
 
 module.exports = {
+  mode: 'production',
   entry: './src/index.ts',
-  devtool: 'inline-source-map',
+  devtool: 'source-map',
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'index.js',
     library: pkg.name,
     libraryTarget: 'umd',
     globalObject: 'this',
+    clean: true,
   },
   module: {
     rules: [
       {
         test: /\.ts?$/,
-        use: 'ts-loader',
-        exclude: /node_modules/,
+        use: {
+          loader: 'ts-loader',
+          options: {
+            configFile: 'tsconfig.build.json'
+          }
+        },
+        exclude: [
+          /node_modules/,
+          /\.test\.ts$/,
+          /\.spec\.ts$/,
+          /__tests__/,
+        ],
       },
       {
         test: /\.(js)$/,
-        exclude: /node_modules/,
+        exclude: [
+          /node_modules/,
+          /\.test\.js$/,
+          /\.spec\.js$/,
+          /__tests__/,
+        ],
         use: {
           loader: "babel-loader",
         },
@@ -33,6 +50,8 @@ module.exports = {
   target: 'node',
   externals: {
     react: 'react',
-    'react-redux': 'react-redux',
+    'react-dom': 'react-dom',
+    zustand: 'zustand',
+    axios: 'axios',
   },
 };

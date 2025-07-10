@@ -52,14 +52,14 @@ export function createStoreRegistry<Models extends Record<string, any>>() {
         create<CrudState<Models[K], C['state']>>((set) => ({
           record: null,
           count: 0,
-          setList: (list) => set({ record: Object.fromEntries(list.map((item) => [item[byKey], item]))}),
+          setList: (list) => set({ record: Object.fromEntries(list.map((item) => [(item as any)[byKey], item]))}),
           patchList: (list: Partial<Models[K]>[]) =>
             set((state) => {
               if (!state.record) return {};
 
               const record = { ...state.record }
               list.map((item) => {
-                const id = item[byKey];
+                const id = (item as any)[byKey];
                 if (record[id]) {
                   record[id] = { ...record[id], ...item }
                 }
@@ -71,9 +71,9 @@ export function createStoreRegistry<Models extends Record<string, any>>() {
               return {
                 record: {
                   ...state.record || {},
-                  [instance[byKey]]: instance,
+                  [(instance as any)[byKey]]: instance,
                 },
-                ...{ count: state.count + (state.record && state.record[instance[byKey]] ? 0 : 1) }
+                ...{ count: state.count + (state.record && state.record[(instance as any)[byKey]] ? 0 : 1) }
               };
             }),
           updateInstance: (instance: Models[K]) =>
@@ -83,8 +83,8 @@ export function createStoreRegistry<Models extends Record<string, any>>() {
               return {
                 record: {
                   ...state.record,
-                  [instance[byKey]]: {
-                    ...state.record[byKey] || {},
+                  [(instance as any)[byKey]]: {
+                    ...state.record[(instance as any)[byKey]] || {},
                     ...instance,
                   },
                 },
@@ -95,8 +95,8 @@ export function createStoreRegistry<Models extends Record<string, any>>() {
               if (!state.record) return {};
 
               const newList = { ...state.record };
-              if (newList[instance[byKey as string]]) {
-                delete newList[instance[byKey as string]];
+              if (newList[(instance as any)[byKey as string]]) {
+                delete newList[(instance as any)[byKey as string]];
               }
 
               return {
