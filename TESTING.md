@@ -187,7 +187,7 @@ Examples:
 ## Continuous Integration
 
 Tests are configured to run automatically on:
-- Push to main/develop branches
+- Push to main/development branches
 - Pull requests
 - GitHub Actions workflow
 
