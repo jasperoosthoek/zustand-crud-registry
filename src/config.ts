@@ -167,7 +167,7 @@ export const validateConfig = <
     parseIdToInt = false,
     // The key to sort by in the state
     byKey = null,
-    state = {},
+    state,
     route,
     customActions = {},
     onError = null,
@@ -194,7 +194,7 @@ export const validateConfig = <
     id,
     byKey: byKey ? byKey : id,
     parseIdToInt,
-    state: state as { [K in keyof C['state']]: C['state'][K] },
+    state: (state || {}) as { [K in keyof C['state']]: C['state'][K] },
     axios: config.axios,
     onError,
     includeRecord,

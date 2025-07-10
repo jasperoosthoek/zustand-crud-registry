@@ -89,8 +89,8 @@ export function useCrud<
 ) {
   const record = store((s) => s.record);
   const count = store((s) => s.count);
-  const stateData = store((s) => s.state);
-  const setState = store((s) => s.setState);
+  const stateData = store.config.state && Object.keys(store.config.state).length > 0 ? store((s) => s.state) : undefined;
+  const setState = store.config.state && Object.keys(store.config.state).length > 0 ? store((s) => s.setState) : undefined;
   const loadingState = store((s) => s.loadingState);
   const { axios, actions: configActions, customActions } = store.config;
   
@@ -236,7 +236,7 @@ export function useCrud<
     list: record ? Object.values(record) : null,
     count,
     ...store.config.includeRecord ? { record } : {},
-    ...store.config.state
+    ...store.config.state && Object.keys(store.config.state).length > 0
       ? {
         state: stateData,
         setState,

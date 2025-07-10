@@ -1,4 +1,6 @@
-// Simple test setup without React dependencies
+// Test setup with React Testing Library and jsdom
+
+import '@testing-library/react';
 
 // Mock console to reduce noise during tests
 global.console = {
