@@ -1,201 +1,570 @@
-### Zustand CRUD Registry
+# Zustand CRUD Registry
 
-Say you love to create frontends using React and would also like to manage data from a database that you need to get from a backend? With a few lines of code you set up a complete *CRUD* which stands for *Create*, *Retrieve*, *Update* and *Delete*. By using this node package, all the data which is retrieved from the backend is stored in a Zustand store. You can get a list of items from the store, create, update and delete items while your React components are automatically updated and have access to loading state and error handling.
+[![npm version](https://badge.fury.io/js/%40jasperoosthoek%2Fzustand-crud-registry.svg)](https://badge.fury.io/js/%40jasperoosthoek%2Fzustand-crud-registry)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/%3C%2F%3E-TypeScript-%230074c1.svg)](http://www.typescriptlang.org/)
 
-A [Dashboard Demo](https://github.com/jasperoosthoek/dashboard-demo) repository and [live demo](https://dashboard-demo-olive-eight.vercel.app/) is available that showcases what this module is capable of including many code examples.
+> **Effortless CRUD operations for React applications with automatic state management, loading states, and type safety.**
 
-First install:
+Transform your React frontend into a powerful data management interface with just a few lines of code. This library combines **Zustand** state management with **Axios** HTTP client to provide reactive, type-safe CRUD operations that automatically sync your UI with your backend.
+
+## Key Features
+
+- **Automatic State Sync** - Backend changes instantly reflect in your React components
+- **Type-Safe Operations** - Full TypeScript support with intelligent autocompletion
+- **Built-in Loading States** - No more manual loading/error state management
+- **Zero Boilerplate** - Set up complete CRUD operations in minutes
+- **Flexible Configuration** - Custom actions, routes, and data transformation
+- **Normalized Storage** - Efficient data storage and updates
+- **React Hooks** - Clean, composable API for your components
+
+## Quick Start
+
+### Installation
 
 ```bash
 npm install @jasperoosthoek/zustand-crud-registry zustand axios
-
 ```
 
-A Zustand store registry needs to be created based on the `key` name and Typescript type of the entity it serves, for instance Notes and Roles:
+### Basic Setup
 
 ```typescript
+// stores/registry.ts
 import { createStoreRegistry } from "@jasperoosthoek/zustand-crud-registry";
+import axios from "axios";
 
-export type Note = {
+// Define your data types
+export type User = {
   id: number;
-  order: number;
-  name: content;
-  // More fields
+  name: string;
+  email: string;
 };
-export type Role = { /* some fields */ };
 
+export type Post = {
+  id: number;
+  title: string;
+  content: string;
+  userId: number;
+};
+
+// Create the store registry (only once in your app)
 export const getOrCreateStore = createStoreRegistry<{
-  roles: Role;
-  notes: Note;
-  // More entities
+  users: User;
+  posts: Post;
 }>();
-```
 
-The `createStoreRegistry` can only appear **once** in the codebase. If it appears more than once, more Zustand store registries are created that do not interact. This function only creates a store *registry* internally where any number of Zustand stores are kept. The function `getOrCreateStore` creates the actual stores. However, Typescript only allows the `getOrCreateStore` to be called with a `'roles'` and `'notes'` input parameter and will provide a fully typed store based on the types provided to `createStoreRegistry`.
+// Set up your HTTP client
+const api = axios.create({ baseURL: '/api' });
 
-A *CRUD* store is created by providing the `key` string and `config` object. Based on the `config` object, the desired actions (getList, update etc) can be provided. It also provides a convenient and optional `state` object and `setState` function that can be used by React components everywhere in the application. And, custom actions (api endpoints) can be created. Every store can hold their own `axios` instance in case there is a difference in authentication between the endpoints.
-
-```typescript
-import Axios, { type Method } from "axios";
-
-const axios = Axios.create({ baseURL: '/api' }); // Provide your own baseUrl here
-
-// Standard crud with all operations
-export const rolesStore = getOrCreateStore(
-  'roles',
-  {
-    axios,
-    actions: {
-      getList: true, // Will use generic config for getList
-      create: true,  // Each action can be completely customized
-      get: true,
-      update: true,
-      delete: true,
-    },
-    onError: toastOnError, // Provide your error handler here
-    route: '/roles',
-  }
-)
-
-// More complicated crud store that also has state and a custum action
-export const notesStore = getOrCreateStore(
-  'notes',
-  {
-    axios,
-    actions: {
-      getList: {
-        method: 'post', // For some reason we need a post here
-        route: ({ id }: Note) => `/other-route/${id}`,
-      },
-      create: true, // Standard config
-      delete: true,
-    },
-    state: {
-      fooBar: 'some value' as string | null,
-      otherValue: 42,
-    },
-    customActions: {
-      // Include a custom move function that handles the api call of, for instance, drag and drop.
-      // To handle a response and trigger an update, a custom hook is needed: see bolow
-      move: { 
-        route: ({ id }: Note) => `/notes/${id}$/move`,
-        method: 'put',
-      }
-    },
-  },
-  onError: toastOnError,
-)
-```
-
-In fact, the above is all the boilerplate you need to provide two complete *CRUD* operations, store date, update the store automatically and provide reactive hooks that can be used inside the components. Note that the `getOrCreateStore` will only create the store once and will need to be provided by an inline constant for the Typescript types to work.
-
-Routes are handled automatically. When `'/roles'` is provided, the `update` will be `'/roles/42'`, and when `'/roles/'` is used, `update` will perform an api call to `'/roles/42/'`. The id is automatically taken from the object. If it's for instance `'slug'` then add `id: 'slug',` to the config like you see in the example.
-
-In fact, the boilerplate can be reduced even more by defining a `defaultConfig` object and using it to define all stores:
-
-```typescript
-const defaultConfig = {
-  axios,
+// Create your stores
+export const usersStore = getOrCreateStore('users', {
+  axios: api,
+  route: '/users',
   actions: {
     getList: true,
     create: true,
-    get: true,
     update: true,
     delete: true,
   },
-  // id: 'id', This is the standard behavior and can be modified
-  onError: toastOnError,
-};
-export const rolesStore = getOrCreateStore('roles', { ...defaultConfig, route: '/roles'});
-// Some other store, just provide employee: Employees to createStoreRegistry.
-export const employeeStore = getOrCreateStore('employees', { ...defaultConfig, route: '/employees'});
-// In this case slugs have a slug field instead of id
-export const tagStore = getOrCreateStore('tags', { ...defaultConfig, id: 'slug', route: '/tags'});
+});
+
+export const postsStore = getOrCreateStore('posts', {
+  axios: api,
+  route: '/posts',
+  actions: {
+    getList: true,
+    create: true,
+    update: true,
+    delete: true,
+  },
+});
 ```
 
-Using a `useCrud` hook you get your data inside any react component and you can manipulate it:
+### Using in Components
 
-``` typescript
+```typescript
+// components/UsersList.tsx
+import React, { useEffect } from 'react';
 import { useCrud } from "@jasperoosthoek/zustand-crud-registry";
+import { usersStore } from '../stores/registry';
 
-const NotesList = () => {
-  const notes = useCrud(notesStore);
+export const UsersList = () => {
+  const users = useCrud(usersStore);
+
   useEffect(() => {
-    notes.getList();
+    if (!users.list) {
+      users.getList();
+    }
   }, []);
 
-  const { foobar } = notes.state; // Will be 'some value' on page load
-  
-  const setFooBar = (value: number) => notes.setState({ otherValue: value }); // Will only set otherValue, not fooBar
+  const handleCreateUser = () => {
+    users.create({
+      name: 'New User',
+      email: 'user@example.com'
+    });
+  };
 
-  // notes.update is not allowed by typescript as update is not set in the config object of notesStore above
+  const handleDeleteUser = (user: User) => {
+    users.delete(user);
+  };
+
+  if (users.getList.isLoading) {
+    return <div>Loading users...</div>;
+  }
+
+  if (users.getList.error) {
+    return <div>Error: {users.getList.error.message}</div>;
+  }
+
   return (
-    notes.list
-      ? notes.list.map((note: None) => {
-          /* Return your React code here*/
-          <NoteItem note={note} />
-        })
-      : <Spinner />
-        // Still waiting for data or an error has occurred:
-        // Get this information from notes.list.isLoading & notes.list.error
-  )
-}
-```
-
-Loading state and error handling is provided to all functions out of the box, furthermore it is reactive and will trigger a render if it changes:
-
-```typescript
-const NoteItem = (note: Note) => {
-  const notes = useCrud(notesStore);
-
-  console.log(notes.delete.isLoading, notes.delete.error, notes.delete.id)
-  
-  return (
-    <div className="note-item">
-      {note.name}
-      <DeleteIcon
-        onClick={() => notes.delete(note)}
-        isLoading={
-          notes.delete.isLoading // Some note is being deleted
-          && notes.delete.id === note.id // Make sure it's this particular note
-        }
-      />
+    <div>
+      <button onClick={handleCreateUser} disabled={users.create.isLoading}>
+        {users.create.isLoading ? 'Creating...' : 'Add User'}
+      </button>
+      
+      <div>
+        {users.list?.map(user => (
+          <div key={user.id} className="user-item">
+            <span>{user.name} - {user.email}</span>
+            <button 
+              onClick={() => handleDeleteUser(user)}
+              disabled={users.delete.isLoading && users.delete.id === user.id}
+            >
+              {users.delete.isLoading && users.delete.id === user.id ? 'Deleting...' : 'Delete'}
+            </button>
+          </div>
+        ))}
+      </div>
     </div>
   );
+};
+```
+
+## Complete Examples
+
+### Advanced Store Configuration
+
+```typescript
+// stores/advanced.ts
+import { createStoreRegistry } from "@jasperoosthoek/zustand-crud-registry";
+import axios from "axios";
+
+export type Task = {
+  id: number;
+  title: string;
+  completed: boolean;
+  priority: 'low' | 'medium' | 'high';
+  order: number;
+};
+
+export const getOrCreateStore = createStoreRegistry<{
+  tasks: Task;
+}>();
+
+const api = axios.create({ 
+  baseURL: '/api',
+  headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+});
+
+export const tasksStore = getOrCreateStore('tasks', {
+  axios: api,
+  route: '/tasks',
+  actions: {
+    getList: {
+      method: 'post', // Custom HTTP method
+      route: '/tasks/search', // Custom route
+    },
+    create: true,
+    update: true,
+    delete: true,
+  },
+  // Custom actions for additional endpoints
+  customActions: {
+    reorder: {
+      route: ({ id }: Task) => `/tasks/${id}/reorder`,
+      method: 'patch',
+    },
+    toggleComplete: {
+      route: ({ id }: Task) => `/tasks/${id}/toggle`,
+      method: 'post',
+    },
+  },
+  // Component state (separate from server data)
+  state: {
+    selectedTaskId: null as number | null,
+    filterBy: 'all' as 'all' | 'completed' | 'pending',
+  },
+  // Error handling
+  onError: (error) => {
+    console.error('Task operation failed:', error);
+    // Could integrate with toast notifications, etc.
+  },
+});
+```
+
+### Component with Custom Actions
+
+```typescript
+// components/TaskManager.tsx
+import React, { useEffect } from 'react';
+import { useCrud } from "@jasperoosthoek/zustand-crud-registry";
+import { tasksStore } from '../stores/advanced';
+
+export const TaskManager = () => {
+  const tasks = useCrud(tasksStore);
+
+  useEffect(() => {
+    tasks.getList();
+  }, []);
+
+  const handleToggleComplete = (task: Task) => {
+    // Custom action usage
+    tasks.toggleComplete(task);
+  };
+
+  const handleFilterChange = (filter: 'all' | 'completed' | 'pending') => {
+    // Update component state
+    tasks.setState({ filterBy: filter });
+  };
+
+  const filteredTasks = tasks.list?.filter(task => {
+    if (tasks.state.filterBy === 'completed') return task.completed;
+    if (tasks.state.filterBy === 'pending') return !task.completed;
+    return true;
+  });
+
+  return (
+    <div>
+      <div>
+        <button onClick={() => handleFilterChange('all')}>All</button>
+        <button onClick={() => handleFilterChange('completed')}>Completed</button>
+        <button onClick={() => handleFilterChange('pending')}>Pending</button>
+      </div>
+
+      <div>
+        {filteredTasks?.map(task => (
+          <div key={task.id} className="task-item">
+            <span>{task.title}</span>
+            <button 
+              onClick={() => handleToggleComplete(task)}
+              disabled={tasks.toggleComplete.isLoading && tasks.toggleComplete.id === task.id}
+            >
+              {task.completed ? 'Mark Pending' : 'Mark Complete'}
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+```
+
+### Custom Response Handling
+
+```typescript
+// hooks/useTasksWithReorder.ts
+import { useCrud, useStore } from "@jasperoosthoek/zustand-crud-registry";
+import { tasksStore } from '../stores/advanced';
+
+export const useTasksWithReorder = () => {
+  const tasks = useCrud(tasksStore);
+  const { patchList } = useStore(tasksStore);
+
+  // Handle reorder response
+  tasks.reorder.onResponse = (reorderedTasks: Partial<Task>[]) => {
+    // Update only the order fields without refetching
+    patchList(reorderedTasks);
+  };
+
+  return tasks;
+};
+```
+
+## API Reference
+
+### `createStoreRegistry<Models>()`
+
+Creates a store registry function. Call this **only once** in your application.
+
+**Parameters:**
+- `Models`: TypeScript type defining your entity models
+
+**Returns:** `getOrCreateStore` function
+
+### `getOrCreateStore(key, config)`
+
+Creates or retrieves a store for a specific entity type.
+
+**Parameters:**
+- `key`: String key matching your Models type
+- `config`: Store configuration object
+
+**Config Options:**
+```typescript
+{
+  axios: AxiosInstance;           // HTTP client instance
+  route: string | RouteFunction;  // Base API route
+  actions?: {                     // Enable/configure CRUD operations
+    getList?: boolean | ActionConfig;
+    get?: boolean | ActionConfig;
+    create?: boolean | ActionConfig;
+    update?: boolean | ActionConfig;
+    delete?: boolean | ActionConfig;
+  };
+  customActions?: {               // Custom API endpoints
+    [name: string]: CustomActionConfig;
+  };
+  state?: object;                 // Component state
+  onError?: (error: any) => void; // Error handler
+  id?: string;                    // ID field name (default: 'id')
+  includeRecord?: boolean;        // Include record object in hook
 }
 ```
 
-In the above example the delete function performs an api call to the backend and triggers `isLoading === true`. When the item is succesfully deleted, it is deleted from the Zustand store and all React components are immediately updated. The same goes for the `create` and `update` functions. The items are automatically created in the store or updated.
+### `useCrud(store)`
 
-The `zustand-crud-registry` also allows for custom actions, in this case the `move` action that moves the object in the backend by modifying the `order` field. Using the `Django REST framework`, this can be done by using the [`django-ordered-model`](https://github.com/django-ordered-model/django-ordered-model). In fact, the [Dashboard Demo](https://github.com/jasperoosthoek/dashboard-demo) app uses the same `above` and `below` functions as the aforementioned Django app. The custom actions don't have any dedicated action they perform to the store. However, this can be done by creating a dedicated hook. 
+Main hook for interacting with your store.
 
-Apart from `useCrud` which supplies all the *CRUD* operations, there is also a `useStore` hook which exposes all the functions and data of the store. These two hooks can be used to create dedicated more complicated hooks where, for instance handle the backend response of the non standard *move* operation which is triggered after drag 'n drop. In this case the backend returns a list of `id` and `order` values instead of the full object because nothing more is needed:
-
+**Returns:**
 ```typescript
-type MoveRolesResponse = { id: number, order: number }[]
+{
+  list: T[] | null;                    // Array of entities or null when no entities have been stored yet
+  count: number;                       // Total count which will differ in case of pagination
 
-// This would work as well: Partial<Role>[]
+  record?: {[id: string]: T} | null;    // Object of entities by id of how data is stored internally (if enabled)
+
+  // CRUD operations (if enabled)
+  getList: AsyncFunction;
+  get: AsyncFunction;
+  create: AsyncFunction;
+  update: AsyncFunction;
+  delete: AsyncFunction;
+  
+  // Custom actions
+  [customAction]: AsyncFunction;
+  
+  // State management (if configured)
+  state: StateObject;
+  setState: (partial: Partial<StateObject>) => void;
+  
+  // Loading states for each operation
+  // Each operation has: isLoading, error, response, id
+}
 ```
 
-Here the `useRoles` hook is generated that is the single hook that can be used by all React component. It gets the list on the first render when it is empty and can be used in more than one component without triggering more than one api operation. The `roles.move()` function is triggered somewhere in the component. But by setting up the `roles.move.onResponse` function like in the following example, the `roles.move` function finds the `onResponse` function attached to itself and execute it with the api response data. In fact, all actions such as `getList`, `update` etc provide this functionality.
+### `useStore(store)`
+
+Lower-level hook providing direct access to store functions.
+
+**Returns:** Complete store state and functions
+
+## Advanced Usage
+
+### Route Functions
 
 ```typescript
-import { useCrud, useStore } from "@jasperoosthoek/zustand-crud-registry";
-
-const useRoles: () => {
-  const roles = useCrud(rolesStore);
-
-  // roles.state and roles.setState will trigger a typescript error because roles don't have state
-  // object in the config of rolesStore.
-
-  useEffect(() => {
-    if (!roles.list) {
-      roles.getList(); // Only get list after the first render and when the list is empty
+// Dynamic routes based on data
+const store = getOrCreateStore('posts', {
+  axios: api,
+  route: '/posts',
+  actions: {
+    getList: {
+      route: ({ userId }: { userId: number }) => `/users/${userId}/posts`
+    },
+    update: {
+      method: 'put',            // Use custom http method instead of default patch
+      route: (post: Post) => `/posts/${post.id}/update`
     }
-  }, [])
-
-  const { patchList } = useStore(rolesStore);
-  roles.move.onResponse = (list: MoveRolesResponse) => patchList(list)
-  return roles
-}, 
+  }
+});
 ```
+
+### Data Transformation
+
+```typescript
+// Transform data before sending to API
+const store = getOrCreateStore('users', {
+  axios: api,
+  route: '/users',
+  actions: {
+    create: {
+      prepare: (userData) => ({
+        ...userData,
+        createdAt: new Date().toISOString()
+      })
+    }
+  }
+});
+```
+
+### Error Handling
+
+```typescript
+const store = getOrCreateStore('users', {
+  axios: api,
+  route: '/users',
+  onError: (error) => {
+    if (error.response?.status === 401) {
+      // Handle authentication error
+      redirectToLogin();
+    } else {
+      // Show error notification
+      showErrorToast(error.message);
+    }
+  }
+});
+```
+
+## 🛠️ Best Practices
+
+### 1. Store Organization
+
+```typescript
+// stores/index.ts - Export all stores from one place
+export * from './users';
+export * from './posts';
+export * from './registry';
+```
+
+### 2. Default Configuration
+
+```typescript
+// stores/config.ts - Reuse common configuration
+export const defaultConfig = {
+  axios: apiClient,
+  actions: {
+    getList: true,
+    create: true,
+    update: true,
+    delete: true,
+  },
+  onError: handleApiError,
+};
+
+// stores/users.ts
+export const usersStore = getOrCreateStore('users', {
+  ...defaultConfig,
+  route: '/users',
+});
+```
+
+### 3. Custom Hooks
+
+```typescript
+// hooks/useUsers.ts - Wrap logic in custom hooks
+export const useUsers = () => {
+  const users = useCrud(usersStore);
+  
+  useEffect(() => {
+    if (!users.list) {
+      users.getList();
+    }
+  }, []);
+  
+  return users;
+};
+```
+
+### 4. Type Safety
+
+```typescript
+// types/api.ts - Define your API types
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  createdAt: string;
+}
+
+export interface CreateUserRequest {
+  name: string;
+  email: string;
+}
+```
+
+## Troubleshooting
+
+### Common Issues
+
+**Q: TypeScript errors about store types**
+```typescript
+// ❌ Don't do this - creates multiple registries
+const store1 = createStoreRegistry<{...}>()('users', config);
+const store2 = createStoreRegistry<{...}>()('posts', config);
+
+// ✅ Do this - single registry
+const getOrCreateStore = createStoreRegistry<{...}>();
+const store1 = getOrCreateStore('users', config);
+const store2 = getOrCreateStore('posts', config);
+```
+
+**Q: Actions not working**
+```typescript
+// ❌ Make sure actions are enabled
+const store = getOrCreateStore('users', {
+  axios: api,
+  route: '/users',
+  // actions: { ... } // Missing actions config
+});
+
+// ✅ Enable the actions you need
+const store = getOrCreateStore('users', {
+  axios: api,
+  route: '/users',
+  actions: {
+    getList: true,
+    create: true,
+    // ... other actions
+  }
+});
+```
+
+**Q: Loading states not updating**
+```typescript
+// ❌ Don't destructure loading states
+const { getList, getList: { isLoading } } = useCrud(store);
+
+// ✅ Access loading states directly
+const users = useCrud(store);
+const isLoading = users.getList.isLoading;
+```
+
+## Examples & Demos
+
+- **[Live Demo](https://dashboard-demo-olive-eight.vercel.app/)** - Complete dashboard application
+- **[Dashboard Demo Repository](https://github.com/jasperoosthoek/dashboard-demo)** - Source code with examples
+- **[TypeScript Examples](https://github.com/jasperoosthoek/zustand-crud-registry/tree/main/examples)** - Additional code samples
+
+## ontributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+### Development Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/jasperoosthoek/zustand-crud-registry.git
+
+# Install dependencies
+npm install
+
+# Build the project
+npm run build
+
+# Run tests
+npm test
+```
+
+## License
+
+MIT © [jasperoosthoek](https://github.com/jasperoosthoek)
+
+## Acknowledgments
+
+- Built with [Zustand](https://github.com/pmndrs/zustand) for state management
+- HTTP client powered by [Axios](https://github.com/axios/axios)
+- Inspired by the need for simpler CRUD operations in React applications
+
+---
+
+**Made with ❤️ by [@jasperoosthoek](https://github.com/jasperoosthoek)**
