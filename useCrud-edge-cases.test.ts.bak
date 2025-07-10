@@ -1,0 +1,409 @@
+import { createStoreRegistry } from '../createStoreRegistry';
+import { useCrud } from '../useCrud';
+import { renderHook, act, waitFor } from '@testing-library/react';
+
+// Create a proper axios function mock with all necessary properties
+const mockAxios = jest.fn();
+Object.assign(mockAxios, {
+  get: jest.fn(),
+  post: jest.fn(),
+  patch: jest.fn(),
+  put: jest.fn(),
+  delete: jest.fn(),
+  create: jest.fn(),
+  defaults: {},
+  interceptors: {
+    request: { use: jest.fn(), eject: jest.fn() },
+    response: { use: jest.fn(), eject: jest.fn() }
+  }
+});
+
+interface TestUser {
+  id: number;
+  name: string;
+  email: string;
+}
+
+describe('useCrud - Coverage Focus Tests', () => {
+  let getOrCreateStore: any;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockAxios.mockClear();
+    
+    getOrCreateStore = createStoreRegistry<{
+      users: TestUser;
+    }>();
+  });
+
+  describe('getAxiosConfig edge cases', () => {
+    it('should handle action without data (getList case)', async () => {
+      const store = getOrCreateStore('users', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { getList: true },
+      });
+
+      mockAxios.mockResolvedValueOnce({
+        data: []
+      });
+
+      const { result } = renderHook(() => useCrud(store));
+
+      await act(async () => {
+        await result.current.getList({ args: { test: 'value' } });
+      });
+
+      // Should not include data property in config
+      expect(mockAxios).toHaveBeenCalledWith({
+        method: 'get',
+        url: '/users',
+        params: undefined
+      });
+    });
+
+    it('should handle route function with original vs data preference', async () => {
+      const routeFunction = jest.fn((data, options) => `/users/${data.id}/custom`);
+      
+      const store = getOrCreateStore('users', {
+        axios: mockAxios,
+        route: routeFunction,
+        actions: { update: true },
+      });
+
+      mockAxios.mockResolvedValueOnce({
+        data: { id: 1, name: 'Updated' }
+      });
+
+      const { result } = renderHook(() => useCrud(store));
+
+      const userData = { id: 1, name: 'Test User' };
+
+      await act(async () => {
+        await result.current.update(userData, {
+          args: { original: { id: 1, name: 'Original' } }
+        });
+      });
+
+      // Should call route function with original data if provided, not the new data
+      expect(routeFunction).toHaveBeenCalledWith(
+        { id: 1, name: 'Original' }, 
+        { args: { original: { id: 1, name: 'Original' } }, params: undefined }
+      );
+    });
+
+    it('should handle prepare function with args and params', async () => {
+      const prepareFunction = jest.fn((data, options) => ({ 
+        ...data, 
+        prepared: true,
+        args: options.args,
+        params: options.params 
+      }));
+
+      const store = getOrCreateStore('users', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { 
+          create: {
+            prepare: prepareFunction
+          }
+        },
+      });
+
+      mockAxios.mockResolvedValueOnce({
+        data: { id: 1, name: 'Created' }
+      });
+
+      const { result } = renderHook(() => useCrud(store));
+
+      const userData = { name: 'Test User' };
+
+      await act(async () => {
+        await result.current.create(userData, {
+          args: { testArg: 'value' },
+          params: { page: 1 }
+        });
+      });
+
+      expect(prepareFunction).toHaveBeenCalledWith(
+        userData,
+        { args: { testArg: 'value' }, params: { page: 1 } }
+      );
+
+      expect(mockAxios).toHaveBeenCalledWith({
+        method: 'post',
+        url: '/users',
+        params: { page: 1 },
+        data: {
+          name: 'Test User',
+          prepared: true,
+          args: { testArg: 'value' },
+          params: { page: 1 }
+        }
+      });
+    });
+  });
+
+  describe('Error handling with callbacks', () => {
+    it('should call action onError and caller onError', async () => {
+      const actionOnError = jest.fn();
+      const callerOnError = jest.fn();
+
+      const store = getOrCreateStore('users', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { 
+          getList: {
+            onError: actionOnError
+          }
+        },
+      });
+
+      const networkError = new Error('Network failed');
+      mockAxios.mockRejectedValueOnce(networkError);
+
+      const { result } = renderHook(() => useCrud(store));
+
+      await act(async () => {
+        await result.current.getList({
+          onError: callerOnError
+        });
+      });
+
+      expect(actionOnError).toHaveBeenCalledWith(networkError);
+      expect(callerOnError).toHaveBeenCalledWith(networkError);
+    });
+
+    it('should handle error when onError callbacks are not provided', async () => {
+      const store = getOrCreateStore('users', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { getList: true },
+      });
+
+      const networkError = new Error('Network failed');
+      mockAxios.mockRejectedValueOnce(networkError);
+
+      const { result } = renderHook(() => useCrud(store));
+
+      // Should not throw even when no error handlers are provided
+      await act(async () => {
+        await result.current.getList();
+      });
+
+      expect(result.current.getList.error).toBe(networkError);
+    });
+  });
+
+  describe('Loading state with IDs', () => {
+    it('should set loading state with ID for update action', async () => {
+      const store = getOrCreateStore('users', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { update: true },
+      });
+
+      // Mock a slow response
+      mockAxios.mockImplementation(() => 
+        new Promise(resolve => 
+          setTimeout(() => resolve({ data: { id: 5, name: 'Updated' } }), 50)
+        )
+      );
+
+      const { result } = renderHook(() => useCrud(store));
+
+      const userData = { id: 5, name: 'Test User' };
+
+      act(() => {
+        result.current.update(userData);
+      });
+
+      // Check that loading state includes the ID
+      await waitFor(() => {
+        expect(result.current.update.isLoading).toBe(true);
+        expect(result.current.update.id).toBe(5);
+      });
+
+      // Wait for completion
+      await waitFor(() => {
+        expect(result.current.update.isLoading).toBe(false);
+      });
+    });
+
+    it('should set loading state with ID for delete action', async () => {
+      const store = getOrCreateStore('users', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { delete: true },
+      });
+
+      mockAxios.mockImplementation(() => 
+        new Promise(resolve => 
+          setTimeout(() => resolve({ data: {} }), 50)
+        )
+      );
+
+      const { result } = renderHook(() => useCrud(store));
+
+      const userData = { id: 3, name: 'To Delete' };
+
+      act(() => {
+        result.current.delete(userData);
+      });
+
+      await waitFor(() => {
+        expect(result.current.delete.isLoading).toBe(true);
+        expect(result.current.delete.id).toBe(3);
+      });
+
+      await waitFor(() => {
+        expect(result.current.delete.isLoading).toBe(false);
+      });
+    });
+  });
+
+  describe('Custom action with custom loading state key', () => {
+    it('should use custom action name as loading state key', async () => {
+      const store = getOrCreateStore('users', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { getList: true },
+        customActions: {
+          specialAction: {
+            route: '/users/special',
+            method: 'post'
+          }
+        }
+      });
+
+      mockAxios.mockResolvedValueOnce({
+        data: { success: true }
+      });
+
+      const { result } = renderHook(() => useCrud(store));
+
+      await act(async () => {
+        await result.current.specialAction({ data: 'test' });
+      });
+
+      expect(mockAxios).toHaveBeenCalledWith({
+        method: 'post',
+        url: '/users/special',
+        params: undefined,
+        data: { data: 'test' }
+      });
+    });
+  });
+
+  describe('Action without ID in data', () => {
+    it('should handle update action without ID gracefully', async () => {
+      const store = getOrCreateStore('users', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { update: true },
+      });
+
+      mockAxios.mockResolvedValueOnce({
+        data: { name: 'Updated without ID' }
+      });
+
+      const { result } = renderHook(() => useCrud(store));
+
+      // Data without id property
+      const userData = { name: 'Test User without ID' };
+
+      await act(async () => {
+        await result.current.update(userData);
+      });
+
+      // Should still work, just without ID in loading state
+      expect(result.current.update.isLoading).toBe(false);
+      expect(result.current.update.id).toBeUndefined();
+    });
+  });
+
+  describe('Response data handling edge cases', () => {
+    it('should handle getList with nested results structure', async () => {
+      const store = getOrCreateStore('users', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { getList: true },
+      });
+
+      const mockUsers = [{ id: 1, name: 'John' }];
+      
+      mockAxios.mockResolvedValueOnce({
+        data: {
+          results: mockUsers,
+          count: 50,
+          meta: { page: 1 }
+        }
+      });
+
+      const { result } = renderHook(() => useCrud(store));
+
+      await act(async () => {
+        await result.current.getList();
+      });
+
+      expect(result.current.list).toEqual(mockUsers);
+      expect(result.current.count).toBe(50);
+    });
+
+    it('should handle getList with direct array response', async () => {
+      const store = getOrCreateStore('users', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { getList: true },
+      });
+
+      const mockUsers = [{ id: 1, name: 'John' }, { id: 2, name: 'Jane' }];
+      
+      mockAxios.mockResolvedValueOnce({
+        data: mockUsers
+      });
+
+      const { result } = renderHook(() => useCrud(store));
+
+      await act(async () => {
+        await result.current.getList();
+      });
+
+      expect(result.current.list).toEqual(mockUsers);
+      expect(result.current.count).toBe(2); // Should use array length
+    });
+  });
+
+  describe('AxiosConfig merging', () => {
+    it('should merge axiosConfig with default config', async () => {
+      const store = getOrCreateStore('users', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { getList: true },
+      });
+
+      mockAxios.mockResolvedValueOnce({
+        data: []
+      });
+
+      const { result } = renderHook(() => useCrud(store));
+
+      await act(async () => {
+        await result.current.getList({
+          axiosConfig: { 
+            timeout: 5000,
+            headers: { 'Custom-Header': 'value' }
+          }
+        });
+      });
+
+      expect(mockAxios).toHaveBeenCalledWith({
+        timeout: 5000,
+        headers: { 'Custom-Header': 'value' },
+        method: 'get',
+        url: '/users',
+        params: undefined
+      });
+    });
+  });
+});
