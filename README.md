@@ -532,10 +532,9 @@ const isLoading = users.getList.isLoading;
 ## Examples & Demos
 
 - **[Live Demo](https://dashboard-demo-olive-eight.vercel.app/)** - Complete dashboard application
-- **[Dashboard Demo Repository](https://github.com/jasperoosthoek/dashboard-demo)** - Source code with examples
-- **[TypeScript Examples](https://github.com/jasperoosthoek/zustand-crud-registry/tree/main/examples)** - Additional code samples
+- **[Dashboard Demo Repository](https://github.com/jasperoosthoek/dashboard-demo)** - Example dashboard project with examples
 
-## ontributing
+## Contributing
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
