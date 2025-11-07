@@ -3,6 +3,7 @@
     "node_modules",
     "**/*.test.ts",
     "**/*.spec.ts",
+    "src/setupTests.ts",
     "src/__tests__/**/*",
     "dist"
   ],

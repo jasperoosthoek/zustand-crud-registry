@@ -11,6 +11,7 @@ export type CrudState<T, S> = {
   count: number;
   setList: (data: T[]) => void;
   patchList: (data: Partial<T>[]) => void;
+  updateList: (data: T[]) => void;
   setCount: (count: number) => void;
   setInstance: (instance: T) => void;
   updateInstance: (instance: T) => void;
@@ -65,6 +66,24 @@ export function createStoreRegistry<Models extends Record<string, any>>() {
                 }
               });
               return { record };
+            }),
+          updateList: (list: Models[K][]) =>
+            set((state) => {
+              const record = { ...state.record || {} };
+              let newCount = 0;
+
+              list.forEach((item) => {
+                const id = (item as any)[byKey];
+                if (!record[id]) {
+                  newCount++;
+                }
+                record[id] = item;
+              });
+
+              return {
+                record,
+                count: state.count + newCount,
+              };
             }),
           setInstance: (instance: Models[K]) =>
             set((state) => {

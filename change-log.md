@@ -38,3 +38,6 @@
 - Updated peerDependencies to require React 19+
 - Added CI/CD status badges to README
 - New up test files and documentation
+
+##### Version 0.0.12
+- New `updateList` function in store

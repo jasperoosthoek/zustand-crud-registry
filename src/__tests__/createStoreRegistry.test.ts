@@ -168,10 +168,10 @@ describe('createStoreRegistry', () => {
     });
 
     const state = store.getState();
-    
+
     // Set initial list
     state.setList(mockUsers);
-    
+
     // Patch specific items
     state.patchList([
       { id: 1, name: 'Updated John' },
@@ -184,6 +184,73 @@ describe('createStoreRegistry', () => {
     expect(currentState.record![2].email).toBe('newemail@example.com');
     expect(currentState.record![2].name).toBe('Jane Smith'); // unchanged
     expect(currentState.record![3]).toEqual(mockUsers[2]); // unchanged
+  });
+
+  it('should handle update list correctly (upsert)', () => {
+    const getOrCreateStore = createStoreRegistry<{
+      users: TestUser;
+    }>();
+
+    const store = getOrCreateStore('users', {
+      axios: mockAxios,
+      route: '/users',
+      actions: { getList: true },
+    });
+
+    const state = store.getState();
+
+    // Set initial list with count
+    state.setList(mockUsers);
+    state.setCount(3);
+
+    // Update list with mix of existing and new users
+    const updatedUser1: TestUser = { id: 1, name: 'John Updated', email: 'john.updated@example.com' };
+    const newUser4: TestUser = { id: 4, name: 'New User 4', email: 'user4@example.com' };
+    const newUser5: TestUser = { id: 5, name: 'New User 5', email: 'user5@example.com' };
+
+    state.updateList([updatedUser1, newUser4, newUser5]);
+
+    const currentState = store.getState();
+
+    // Existing user should be replaced completely
+    expect(currentState.record![1]).toEqual(updatedUser1);
+
+    // Existing users not in updateList should remain unchanged
+    expect(currentState.record![2]).toEqual(mockUsers[1]);
+    expect(currentState.record![3]).toEqual(mockUsers[2]);
+
+    // New users should be added
+    expect(currentState.record![4]).toEqual(newUser4);
+    expect(currentState.record![5]).toEqual(newUser5);
+
+    // Count should increase by 2 (only new users)
+    expect(currentState.count).toBe(5);
+  });
+
+  it('should handle update list with empty initial state', () => {
+    const getOrCreateStore = createStoreRegistry<{
+      users: TestUser;
+    }>();
+
+    const store = getOrCreateStore('users', {
+      axios: mockAxios,
+      route: '/users',
+      actions: { getList: true },
+    });
+
+    const state = store.getState();
+
+    // Call updateList on empty store
+    const newUser1: TestUser = { id: 1, name: 'User 1', email: 'user1@example.com' };
+    const newUser2: TestUser = { id: 2, name: 'User 2', email: 'user2@example.com' };
+
+    state.updateList([newUser1, newUser2]);
+
+    const currentState = store.getState();
+
+    expect(currentState.record![1]).toEqual(newUser1);
+    expect(currentState.record![2]).toEqual(newUser2);
+    expect(currentState.count).toBe(2);
   });
 
   it('should handle custom state correctly', () => {
