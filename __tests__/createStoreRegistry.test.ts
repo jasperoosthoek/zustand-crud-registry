@@ -1,4 +1,4 @@
-import { createStoreRegistry } from '../createStoreRegistry';
+import { createStoreRegistry } from '../src/createStoreRegistry';
 import { TestUser, TestPost, mockUsers } from './testUtils';
 
 // Simple mock axios

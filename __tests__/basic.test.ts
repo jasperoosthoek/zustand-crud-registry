@@ -1,4 +1,4 @@
-import { createStoreRegistry } from '../createStoreRegistry';
+import { createStoreRegistry } from '../src/createStoreRegistry';
 import axios from 'axios';
 
 // Simple unit test without React dependencies

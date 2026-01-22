@@ -1,5 +1,5 @@
-import { createStoreRegistry } from '../createStoreRegistry';
-import { useCrud } from '../useCrud';
+import { createStoreRegistry } from '../src/createStoreRegistry';
+import { useCrud } from '../src/useCrud';
 import { renderHook, act } from '@testing-library/react';
 
 // Simple mock axios

@@ -41,3 +41,6 @@
 
 ##### Version 0.0.12
 - New `updateList` function in store
+
+##### Upcoming
+- Move `/src/__tests__` to `/__tests__`

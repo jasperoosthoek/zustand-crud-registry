@@ -1,5 +1,5 @@
-import { createStoreRegistry } from '../createStoreRegistry';
-import { useStore } from '../useStore';
+import { createStoreRegistry } from '../src/createStoreRegistry';
+import { useStore } from '../src/useStore';
 import { renderHook, act } from '@testing-library/react';
 
 // Simple mock axios

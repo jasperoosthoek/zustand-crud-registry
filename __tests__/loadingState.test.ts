@@ -1,4 +1,4 @@
-import { createStoreRegistry } from '../createStoreRegistry';
+import { createStoreRegistry } from '../src/createStoreRegistry';
 import { 
   defaultLoadingState, 
   getLoadingState, 
@@ -6,7 +6,7 @@ import {
   initiateAction, 
   finishAction, 
   actionError 
-} from '../loadingState';
+} from '../src/loadingState';
 
 // Simple mock axios
 const mockAxios = {

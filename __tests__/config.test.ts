@@ -1,4 +1,4 @@
-import { validateConfig, getDetailRoute } from '../config';
+import { validateConfig, getDetailRoute } from '../src/config';
 import { TestUser } from './testUtils';
 
 // Simple mock axios

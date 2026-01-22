@@ -360,6 +360,25 @@ Lower-level hook providing direct access to store functions.
 
 **Returns:** Complete store state and functions
 
+### Store State Functions
+
+The store provides direct state manipulation functions for advanced use cases:
+
+**List Operations:**
+- `setList(items: T[])` - Replaces the entire record with new items
+- `patchList(items: Partial<T>[])` - Updates existing items only (ignores new items)
+- `updateList(items: T[])` - Upserts items (updates existing, inserts new)
+- `setCount(count: number)` - Sets the total count manually
+
+**Single Item Operations:**
+- `setInstance(item: T)` - Adds or replaces a single item
+- `updateInstance(item: T)` - Merges updates into an existing item
+- `deleteInstance(item: T)` - Removes an item from the store
+
+**State Management:**
+- `setState(partial: Partial<State>)` - Updates custom component state
+- `setLoadingState(key: string, value: Partial<LoadingState>)` - Manually update loading state
+
 ## Advanced Usage
 
 ### Route Functions

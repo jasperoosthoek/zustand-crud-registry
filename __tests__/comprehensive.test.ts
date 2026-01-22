@@ -1,6 +1,6 @@
-import { createStoreRegistry } from '../createStoreRegistry';
-import { validateConfig } from '../config';
-import { defaultLoadingState, getLoadingState, setLoadingState } from '../loadingState';
+import { createStoreRegistry } from '../src/createStoreRegistry';
+import { validateConfig } from '../src/config';
+import { defaultLoadingState, getLoadingState, setLoadingState } from '../src/loadingState';
 
 // Mock axios for testing
 const mockAxios = {
