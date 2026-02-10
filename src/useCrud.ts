@@ -130,7 +130,7 @@ export function useCrud<
        ) as AsyncFunction<T>;
 
       const paginationState = store.getState().pagination;
-      const paginationParams = actionKey === 'getList' && paginationConfig && paginationState
+      const paginationParams = actionKey === 'getList' && paginationConfig?.prepareParams && paginationState
         ? paginationConfig.prepareParams(paginationState)
         : null;
 
@@ -168,7 +168,7 @@ export function useCrud<
         } else if (actionKey === 'getList') {
           const results = Array.isArray(response.data) ? response.data : response.data.results;
           await state.setList(results);
-          if (paginationConfig) {
+          if (paginationConfig?.prepare) {
             await state.setPagination(paginationConfig.prepare(response.data));
           }
           responseData = results;

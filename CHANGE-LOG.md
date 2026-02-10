@@ -49,3 +49,6 @@
 ##### Version 0.1.0
 - All actions have optional `onResponse` function that handles `Axios` response data
 - New `pagination` object in config that replaces `count`
+
+##### Version 0.1.1
+- Make all fields in `config.pagination` optional

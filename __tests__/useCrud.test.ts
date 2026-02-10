@@ -518,6 +518,100 @@ describe('useCrud', () => {
       expect(result.current.pagination).toBeUndefined();
       expect(result.current.setPagination).toBeUndefined();
     });
+
+    it('should support pagination: true as minimal opt-in', () => {
+      const paginationStore = getOrCreateStore('usersPaginationTrue', {
+        axios: mockAxios as any,
+        route: '/users',
+        actions: { getList: true },
+        pagination: true,
+      });
+
+      const { result } = renderHook(() => useCrud(paginationStore));
+
+      expect(result.current.pagination).toEqual({ count: 0, offset: 0, limit: 0 });
+      expect(typeof result.current.setPagination).toBe('function');
+    });
+
+    it('should work without prepare (no auto-extraction from response)', async () => {
+      const mockAxiosFn = jest.fn().mockResolvedValueOnce({
+        data: [{ id: 1, name: 'John', email: 'john@example.com' }],
+      });
+      Object.assign(mockAxiosFn, mockAxios);
+
+      const paginationStore = getOrCreateStore('usersPaginationNoPrepare', {
+        axios: mockAxiosFn as any,
+        route: '/users',
+        actions: { getList: true },
+        pagination: {
+          limit: 20,
+        },
+      });
+
+      const { result } = renderHook(() => useCrud(paginationStore));
+
+      await act(async () => {
+        await result.current.getList();
+      });
+
+      // pagination.count should remain 0 since no prepare function extracts it
+      expect(result.current.pagination).toEqual({ count: 0, offset: 0, limit: 20 });
+    });
+
+    it('should work without prepareParams (no auto params on request)', async () => {
+      const mockAxiosFn = jest.fn().mockResolvedValueOnce({
+        data: { results: [{ id: 1, name: 'John', email: 'john@example.com' }], total: 50 },
+      });
+      Object.assign(mockAxiosFn, mockAxios);
+
+      const paginationStore = getOrCreateStore('usersPaginationNoPrepareParams', {
+        axios: mockAxiosFn as any,
+        route: '/users',
+        actions: { getList: true },
+        pagination: {
+          limit: 10,
+          prepare: (data: any) => ({ count: data.total }),
+        },
+      });
+
+      const { result } = renderHook(() => useCrud(paginationStore));
+
+      await act(async () => {
+        await result.current.getList({ params: { search: 'john' } });
+      });
+
+      // No pagination params should be added, only user-provided params
+      expect(mockAxiosFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          params: { search: 'john' },
+        }),
+      );
+
+      // But prepare should still extract count from response
+      expect(result.current.pagination).toEqual({ count: 50, offset: 0, limit: 10 });
+    });
+
+    it('should support pagination with only limit (manual control)', () => {
+      const paginationStore = getOrCreateStore('usersPaginationLimitOnly', {
+        axios: mockAxios as any,
+        route: '/users',
+        actions: { getList: true },
+        pagination: {
+          limit: 25,
+        },
+      });
+
+      const { result } = renderHook(() => useCrud(paginationStore));
+
+      expect(result.current.pagination).toEqual({ count: 0, offset: 0, limit: 25 });
+
+      // User can manually control pagination
+      act(() => {
+        result.current.setPagination!({ count: 100, offset: 50 });
+      });
+
+      expect(result.current.pagination).toEqual({ count: 100, offset: 50, limit: 25 });
+    });
   });
 
   describe('error handling', () => {

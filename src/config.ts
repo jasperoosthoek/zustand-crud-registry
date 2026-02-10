@@ -84,11 +84,18 @@ export const defaultPagination: Pagination = { count: 0, offset: 0, limit: 0 };
 export type PreparePagination = (responseData: any) => Partial<Pagination>;
 export type PreparePaginationParams = (pagination: Pagination) => Record<string, any>;
 
+export type PaginationInputConfig = {
+  limit?: number;
+  offset?: number;
+  prepare?: PreparePagination;
+  prepareParams?: PreparePaginationParams;
+}
+
 export type PaginationConfig = {
   limit: number;
-  offset?: number;
-  prepare: PreparePagination;
-  prepareParams: PreparePaginationParams;
+  offset: number;
+  prepare?: PreparePagination;
+  prepareParams?: PreparePaginationParams;
 }
 
 export type State<T> = {
@@ -117,7 +124,7 @@ export type BaseConfig<T> = {
   axios: AxiosInstance;
   includeRecord?: boolean;
   onError?: OnError;
-  pagination?: PaginationConfig;
+  pagination?: true | PaginationInputConfig;
 };
 
 export interface Config<K extends string, T> extends BaseConfig<T> {}
@@ -306,7 +313,7 @@ export const validateConfig = <
       ),
     route,
     pagination: pagination
-      ? { offset: 0, ...pagination }
+      ? { limit: 0, offset: 0, ...(pagination === true ? {} : pagination) }
       : null,
   } as ValidatedConfig<K, T, C>
 

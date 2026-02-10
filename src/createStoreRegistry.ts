@@ -152,7 +152,7 @@ export function createStoreRegistry<Models extends Record<string, any>>() {
               }
             })),
           pagination: validated.pagination
-            ? { ...defaultPagination, limit: validated.pagination.limit, offset: validated.pagination.offset ?? 0 }
+            ? { ...defaultPagination, limit: validated.pagination.limit, offset: validated.pagination.offset }
             : null,
           setPagination: (partial: Partial<Pagination>) => set(
             (state) => ({
