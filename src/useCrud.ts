@@ -4,7 +4,7 @@ import { defaultLoadingState, initiateAction, finishAction, actionError, getLoad
 import type { AxiosRequestConfig, Method } from 'axios'
 import type { LoadingStateValue } from "./loadingState";
 import type { CrudStore } from "./createStoreRegistry";
-import type { Config, ValidatedConfig, ValidConfig, AsyncFunction, Route } from "./config"
+import type { Config, ValidatedConfig, ValidConfig, AsyncFunction, Route, Pagination } from "./config"
 
 export const callIfFunc = (func: any, ...params: any[]) => {
   if (typeof func === 'function') {
@@ -91,8 +91,11 @@ export function useCrud<
   const count = store((s) => s.count);
   const stateData = store.config.state && Object.keys(store.config.state).length > 0 ? store((s) => s.state) : undefined;
   const setState = store.config.state && Object.keys(store.config.state).length > 0 ? store((s) => s.setState) : undefined;
+  const pagination = store((s) => s.pagination);
+  const setPagination = store((s) => s.setPagination);
   const loadingState = store((s) => s.loadingState);
   const { axios, actions: configActions, customActions } = store.config;
+  const paginationConfig = store.config.pagination;
   
   function getAction<T, K extends keyof ActionFunctions<T>, J extends keyof C['customActions'] | undefined>(
     actionKey: K,
@@ -127,12 +130,21 @@ export function useCrud<
           : (configActions as unknown as any)[actionKey]
        ) as AsyncFunction<T>;
 
+      const paginationState = store.getState().pagination;
+      const paginationParams = actionKey === 'getList' && paginationConfig && paginationState
+        ? paginationConfig.prepareParams(paginationState)
+        : null;
+
+      const mergedParams = paginationParams
+        ? { ...paginationParams, ...params }
+        : params;
+
       const mergedAxiosConfig = getAxiosConfig({
         ...actionKey !== 'getList' ? { data } : {},
         method,
         route,
-        params,
-        axiosConfig, 
+        params: mergedParams,
+        axiosConfig,
         args,
         prepare,
       })
@@ -145,8 +157,6 @@ export function useCrud<
           ...actionKey === 'update' || actionKey === 'delete' ? { id } : {},
         }
       );
-
-      const sleep = (delay: number) => new Promise((resolve) => setTimeout(resolve, delay))
       
       try {
         const response = await axios(mergedAxiosConfig);
@@ -160,7 +170,11 @@ export function useCrud<
           const results = Array.isArray(response.data) ? response.data : response.data.results;
           const count = response.data.count ?? results.length;
           await state.setList(results);
-          await state.setCount(count);
+          if (paginationConfig) {
+            await state.setPagination(paginationConfig.prepare(response.data));
+          } else {
+            await state.setCount(count);
+          }
           responseData = results;
 
         } else if (actionKey === 'create') {
@@ -236,7 +250,9 @@ export function useCrud<
 
   const output = {
     list: record ? Object.values(record) : null,
-    count,
+    ...paginationConfig
+      ? { pagination, setPagination }
+      : { count },
     ...store.config.includeRecord ? { record } : {},
     ...store.config.state && Object.keys(store.config.state).length > 0
       ? {
@@ -247,7 +263,9 @@ export function useCrud<
     ...customActionConfig,
   } as {
     list: T[] | null;
-    count: number;
+    count?: number;
+    pagination?: Pagination;
+    setPagination?: (partial: Partial<Pagination>) => void;
   } & ConditionalActionFunctions<T, V> & (
   keyof S extends never
     ? {}
@@ -255,10 +273,10 @@ export function useCrud<
         state: S;
         setState: (subState: Partial<S>) => void;
       }
-  ) & CustomActionFunctions<T, V> 
+  ) & CustomActionFunctions<T, V>
    & (
       C extends { includeRecord: true }
-        ? {record: { [key: string]:  T} | null } 
+        ? {record: { [key: string]:  T} | null }
         : {}
     )
 

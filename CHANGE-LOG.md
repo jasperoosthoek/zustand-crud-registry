@@ -46,5 +46,6 @@
 - Move `/src/__tests__` to `/__tests__`
 - Remove debug code that made api calls slow
 
-##### Version 0.0.13
+##### Upcoming: Version 0.1.0
 - All actions have optional `onResponse` function that handles `Axios` response data
+- New `pagination` in config that replaces `count`

@@ -73,6 +73,24 @@ export type ValidCustomActions<K extends string, T, C extends Config<K, T>> = {
   );
 }
 
+export type Pagination = {
+  count: number;
+  offset: number;
+  limit: number;
+}
+
+export const defaultPagination: Pagination = { count: 0, offset: 0, limit: 0 };
+
+export type PreparePagination = (responseData: any) => Partial<Pagination>;
+export type PreparePaginationParams = (pagination: Pagination) => Record<string, any>;
+
+export type PaginationConfig = {
+  limit: number;
+  offset?: number;
+  prepare: PreparePagination;
+  prepareParams: PreparePaginationParams;
+}
+
 export type State<T> = {
   [key: string]: any;
 }
@@ -99,6 +117,7 @@ export type BaseConfig<T> = {
   axios: AxiosInstance;
   includeRecord?: boolean;
   onError?: OnError;
+  pagination?: PaginationConfig;
 };
 
 export interface Config<K extends string, T> extends BaseConfig<T> {}
@@ -135,6 +154,7 @@ export type ValidatedConfig<K extends string, T, TConfig extends Config<K, T>> =
   selectedId?: string,
   includeRecord: boolean
   selectedIds?: string,
+  pagination: PaginationConfig | null;
 }
 
 export const getDetailRoute = (route: Route | null, id: string) => (
@@ -171,6 +191,7 @@ export const validateConfig = <
     customActions = {},
     onError = null,
     includeRecord = false,
+    pagination = null,
   } = config;
 
   const actions =
@@ -284,6 +305,9 @@ export const validateConfig = <
         {} as ValidCustomActions<K, T, C>
       ),
     route,
+    pagination: pagination
+      ? { offset: 0, ...pagination }
+      : null,
   } as ValidatedConfig<K, T, C>
 
   return newConfig;
@@ -310,4 +334,5 @@ export type ValidConfig<T> = {
   route?: Route;
   selectedId?: string,
   selectedIds?: string,
+  pagination: PaginationConfig | null;
 };

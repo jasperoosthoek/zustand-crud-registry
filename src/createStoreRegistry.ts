@@ -4,7 +4,8 @@ import { defaultLoadingState } from "./loadingState";
 import { validateConfig } from "./config";
 
 import type { LoadingStateValue } from "./loadingState";
-import type { Config, ValidatedConfig } from "./config";
+import { defaultPagination } from "./config";
+import type { Config, ValidatedConfig, Pagination } from "./config";
 
 export type CrudState<T, S> = {
   record: { [key: string]: T } | null;
@@ -20,6 +21,8 @@ export type CrudState<T, S> = {
   setLoadingState: (key: string, value: Partial<LoadingStateValue>) => void;
   state: S;
   setState: (subState: Partial<S>) => void;
+  pagination: Pagination | null;
+  setPagination: (partial: Partial<Pagination>) => void;
 };
 
 export type CrudStore<
@@ -144,7 +147,16 @@ export function createStoreRegistry<Models extends Record<string, any>>() {
                 ...state.state || {},
                 ...subState,
               }
-            }))
+            })),
+          pagination: validated.pagination
+            ? { ...defaultPagination, limit: validated.pagination.limit, offset: validated.pagination.offset ?? 0 }
+            : null,
+          setPagination: (partial: Partial<Pagination>) => set(
+            (state) => ({
+              pagination: state.pagination
+                ? { ...state.pagination, ...partial }
+                : null,
+            })),
         })),
         { key, config: validated } 
       );

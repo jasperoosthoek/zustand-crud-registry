@@ -419,6 +419,112 @@ describe('useCrud', () => {
     });
   });
 
+  describe('pagination', () => {
+    it('should expose pagination and setPagination when configured', () => {
+      const paginationStore = getOrCreateStore('usersPagination', {
+        axios: mockAxios as any,
+        route: '/users',
+        actions: { getList: true },
+        pagination: {
+          limit: 20,
+          prepare: (data: any) => ({ count: data.total }),
+          prepareParams: ({ offset, limit }) => ({ offset, limit }),
+        },
+      });
+
+      const { result } = renderHook(() => useCrud(paginationStore));
+
+      expect(result.current.pagination).toEqual({ count: 0, offset: 0, limit: 20 });
+      expect(typeof result.current.setPagination).toBe('function');
+      expect(result.current.count).toBeUndefined();
+    });
+
+    it('should update pagination state via setPagination', () => {
+      const paginationStore = getOrCreateStore('usersPaginationUpdate', {
+        axios: mockAxios as any,
+        route: '/users',
+        actions: { getList: true },
+        pagination: {
+          limit: 20,
+          prepare: (data: any) => ({ count: data.total }),
+          prepareParams: ({ offset, limit }) => ({ offset, limit }),
+        },
+      });
+
+      const { result } = renderHook(() => useCrud(paginationStore));
+
+      act(() => {
+        result.current.setPagination!({ offset: 40 });
+      });
+
+      expect(result.current.pagination).toEqual({ count: 0, offset: 40, limit: 20 });
+    });
+
+    it('should use prepareParams to build request params', async () => {
+      const mockAxiosFn = jest.fn().mockResolvedValueOnce({
+        data: { items: [{ id: 1, name: 'John', email: 'john@example.com' }], total: 50 },
+      });
+      Object.assign(mockAxiosFn, mockAxios);
+
+      const paginationStore = getOrCreateStore('usersPaginationParams', {
+        axios: mockAxiosFn as any,
+        route: '/users',
+        actions: { getList: true },
+        pagination: {
+          limit: 10,
+          prepare: (data: any) => ({ count: data.total }),
+          prepareParams: ({ offset, limit }) => ({ page: offset / limit + 1, page_size: limit }),
+        },
+      });
+
+      const { result } = renderHook(() => useCrud(paginationStore));
+
+      await act(async () => {
+        await result.current.getList({ params: { search: 'john' } });
+      });
+
+      expect(mockAxiosFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          params: { page: 1, page_size: 10, search: 'john' },
+        }),
+      );
+    });
+
+    it('should call prepare and update pagination from response', async () => {
+      const mockAxiosFn = jest.fn().mockResolvedValueOnce({
+        data: { results: [{ id: 1, name: 'John', email: 'john@example.com' }], total: 50 },
+      });
+      Object.assign(mockAxiosFn, mockAxios);
+
+      const paginationStore = getOrCreateStore('usersPaginationPrepare', {
+        axios: mockAxiosFn as any,
+        route: '/users',
+        actions: { getList: true },
+        pagination: {
+          limit: 10,
+          prepare: (data: any) => ({ count: data.total }),
+          prepareParams: ({ offset, limit }) => ({ offset, limit }),
+        },
+      });
+
+      const { result } = renderHook(() => useCrud(paginationStore));
+
+      await act(async () => {
+        await result.current.getList();
+      });
+
+      expect(result.current.pagination).toEqual({ count: 50, offset: 0, limit: 10 });
+    });
+
+    it('should not expose pagination when not configured', () => {
+      const { result } = renderHook(() => useCrud(store));
+
+      expect(result.current.pagination).toBeUndefined();
+      expect(result.current.setPagination).toBeUndefined();
+      expect(result.current.count).toBe(0);
+    });
+  });
+
   describe('error handling', () => {
     it('should handle action errors gracefully', () => {
       const mockOnError = jest.fn();
