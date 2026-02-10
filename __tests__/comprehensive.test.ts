@@ -133,7 +133,6 @@ describe('Zustand CRUD Registry', () => {
     it('should handle initial state correctly', () => {
       const state = store.getState();
       expect(state.record).toBeNull();
-      expect(state.count).toBe(0);
       expect(state.loadingState).toEqual({});
     });
 
@@ -149,13 +148,6 @@ describe('Zustand CRUD Registry', () => {
       });
     });
 
-    it('should set count correctly', () => {
-      const state = store.getState();
-      state.setCount(5);
-      
-      expect(store.getState().count).toBe(5);
-    });
-
     it('should add instances correctly', () => {
       const state = store.getState();
       const newUser: TestUser = { id: 4, name: 'New User', email: 'new@example.com' };
@@ -164,7 +156,6 @@ describe('Zustand CRUD Registry', () => {
       
       const newState = store.getState();
       expect(newState.record).toEqual({ 4: newUser });
-      expect(newState.count).toBe(1);
     });
 
     it('should update instances correctly', () => {
@@ -187,14 +178,12 @@ describe('Zustand CRUD Registry', () => {
       
       // First add users
       state.setList(mockUsers);
-      state.setCount(mockUsers.length);
-      
+
       // Then delete one
       state.deleteInstance(mockUsers[0]);
       
       const newState = store.getState();
       expect(newState.record![1]).toBeUndefined();
-      expect(newState.count).toBe(2);
     });
 
     it('should patch list correctly', () => {

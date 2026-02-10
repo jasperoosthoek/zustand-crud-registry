@@ -52,7 +52,6 @@ describe('useStore', () => {
     const { result } = renderHook(() => useStore(store));
 
     expect(result.current.record).toBeNull();
-    expect(result.current.count).toBe(0);
     expect(result.current.loadingState).toEqual({});
     expect(result.current.state).toEqual({
       selectedUserId: null,
@@ -60,7 +59,6 @@ describe('useStore', () => {
     });
     expect(typeof result.current.setList).toBe('function');
     expect(typeof result.current.patchList).toBe('function');
-    expect(typeof result.current.setCount).toBe('function');
     expect(typeof result.current.setInstance).toBe('function');
     expect(typeof result.current.updateInstance).toBe('function');
     expect(typeof result.current.deleteInstance).toBe('function');
@@ -78,13 +76,11 @@ describe('useStore', () => {
 
     // Get initial state
     expect(result.current.record).toBeNull();
-    expect(result.current.count).toBe(0);
 
     // Update store directly
     act(() => {
       const state = store.getState();
       state.setList(mockUsers);
-      state.setCount(mockUsers.length);
     });
 
     // Check that useStore reflects the changes
@@ -92,7 +88,6 @@ describe('useStore', () => {
       1: mockUsers[0],
       2: mockUsers[1],
     });
-    expect(result.current.count).toBe(2);
   });
 
   it('should provide access to store functions', () => {
@@ -104,7 +99,6 @@ describe('useStore', () => {
       result.current.setInstance(newUser);
     });
     expect(result.current.record).toEqual({ 3: newUser });
-    expect(result.current.count).toBe(1);
 
     // Test updateInstance
     act(() => {
@@ -118,7 +112,6 @@ describe('useStore', () => {
       result.current.deleteInstance(newUser);
     });
     expect(result.current.record).toEqual({});
-    expect(result.current.count).toBe(0);
   });
 
   it('should provide access to custom state', () => {
@@ -201,7 +194,6 @@ describe('useStore', () => {
     const { result } = renderHook(() => useStore(storeWithoutState));
     expect(result.current.state).toBeUndefined();
     expect(typeof result.current.setList).toBe('function');
-    expect(typeof result.current.setCount).toBe('function');
   });
 
   it('should handle record operations correctly', () => {
@@ -219,7 +211,6 @@ describe('useStore', () => {
       1: user1,
       2: user2,
     });
-    expect(result.current.count).toBe(2);
 
     // Update one instance
     act(() => {
@@ -233,6 +224,5 @@ describe('useStore', () => {
       result.current.deleteInstance(user2);
     });
     expect(result.current.record).toEqual({ 1: { id: 1, name: 'Updated User 1', email: 'user1@example.com' } });
-    expect(result.current.count).toBe(1);
   });
 });

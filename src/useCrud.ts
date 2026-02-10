@@ -88,7 +88,6 @@ export function useCrud<
   }
 ) {
   const record = store((s) => s.record);
-  const count = store((s) => s.count);
   const stateData = store.config.state && Object.keys(store.config.state).length > 0 ? store((s) => s.state) : undefined;
   const setState = store.config.state && Object.keys(store.config.state).length > 0 ? store((s) => s.setState) : undefined;
   const pagination = store((s) => s.pagination);
@@ -168,12 +167,9 @@ export function useCrud<
 
         } else if (actionKey === 'getList') {
           const results = Array.isArray(response.data) ? response.data : response.data.results;
-          const count = response.data.count ?? results.length;
           await state.setList(results);
           if (paginationConfig) {
             await state.setPagination(paginationConfig.prepare(response.data));
-          } else {
-            await state.setCount(count);
           }
           responseData = results;
 
@@ -252,7 +248,7 @@ export function useCrud<
     list: record ? Object.values(record) : null,
     ...paginationConfig
       ? { pagination, setPagination }
-      : { count },
+      : {},
     ...store.config.includeRecord ? { record } : {},
     ...store.config.state && Object.keys(store.config.state).length > 0
       ? {
@@ -263,7 +259,6 @@ export function useCrud<
     ...customActionConfig,
   } as {
     list: T[] | null;
-    count?: number;
     pagination?: Pagination;
     setPagination?: (partial: Partial<Pagination>) => void;
   } & ConditionalActionFunctions<T, V> & (

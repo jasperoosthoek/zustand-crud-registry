@@ -52,7 +52,6 @@ describe('useCrud', () => {
       const { result } = renderHook(() => useCrud(store));
 
       expect(result.current.list).toBeNull();
-      expect(result.current.count).toBe(0);
       expect(typeof result.current.getList).toBe('function');
       expect(typeof result.current.create).toBe('function');
       expect(typeof result.current.update).toBe('function');
@@ -71,7 +70,7 @@ describe('useCrud', () => {
       expect(result.current.get.isLoading).toBe(false);
     });
 
-    it('should reflect store changes in list and count', () => {
+    it('should reflect store changes in list', () => {
       const mockUsers = [
         { id: 1, name: 'John Doe', email: 'john@example.com' },
         { id: 2, name: 'Jane Smith', email: 'jane@example.com' },
@@ -83,11 +82,9 @@ describe('useCrud', () => {
       act(() => {
         const state = store.getState();
         state.setList(mockUsers);
-        state.setCount(mockUsers.length);
       });
 
       expect(result.current.list).toEqual(mockUsers);
-      expect(result.current.count).toBe(2);
     });
   });
 
@@ -436,7 +433,6 @@ describe('useCrud', () => {
 
       expect(result.current.pagination).toEqual({ count: 0, offset: 0, limit: 20 });
       expect(typeof result.current.setPagination).toBe('function');
-      expect(result.current.count).toBeUndefined();
     });
 
     it('should update pagination state via setPagination', () => {
@@ -521,7 +517,6 @@ describe('useCrud', () => {
 
       expect(result.current.pagination).toBeUndefined();
       expect(result.current.setPagination).toBeUndefined();
-      expect(result.current.count).toBe(0);
     });
   });
 

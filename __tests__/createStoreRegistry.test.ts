@@ -106,7 +106,6 @@ describe('createStoreRegistry', () => {
 
     // Initial state
     expect(state.record).toBeNull();
-    expect(state.count).toBe(0);
 
     // Set list
     state.setList(mockUsers);
@@ -116,11 +115,6 @@ describe('createStoreRegistry', () => {
       2: mockUsers[1],
       3: mockUsers[2],
     });
-    expect(newState.count).toBe(0); // count is not automatically set by setList
-
-    // Set count
-    state.setCount(mockUsers.length);
-    expect(store.getState().count).toBe(3);
   });
 
   it('should handle instance operations correctly', () => {
@@ -141,7 +135,6 @@ describe('createStoreRegistry', () => {
     state.setInstance(newUser);
     let currentState = store.getState();
     expect(currentState.record).toEqual({ 4: newUser });
-    expect(currentState.count).toBe(1);
 
     // Update instance
     const updatedUser = { ...newUser, name: 'Updated User' };
@@ -153,7 +146,6 @@ describe('createStoreRegistry', () => {
     state.deleteInstance(updatedUser);
     currentState = store.getState();
     expect(currentState.record).toEqual({});
-    expect(currentState.count).toBe(0);
   });
 
   it('should handle patch list correctly', () => {
@@ -199,9 +191,8 @@ describe('createStoreRegistry', () => {
 
     const state = store.getState();
 
-    // Set initial list with count
+    // Set initial list
     state.setList(mockUsers);
-    state.setCount(3);
 
     // Update list with mix of existing and new users
     const updatedUser1: TestUser = { id: 1, name: 'John Updated', email: 'john.updated@example.com' };
@@ -222,9 +213,6 @@ describe('createStoreRegistry', () => {
     // New users should be added
     expect(currentState.record![4]).toEqual(newUser4);
     expect(currentState.record![5]).toEqual(newUser5);
-
-    // Count should increase by 2 (only new users)
-    expect(currentState.count).toBe(5);
   });
 
   it('should handle update list with empty initial state', () => {
@@ -250,7 +238,6 @@ describe('createStoreRegistry', () => {
 
     expect(currentState.record![1]).toEqual(newUser1);
     expect(currentState.record![2]).toEqual(newUser2);
-    expect(currentState.count).toBe(2);
   });
 
   it('should handle custom state correctly', () => {

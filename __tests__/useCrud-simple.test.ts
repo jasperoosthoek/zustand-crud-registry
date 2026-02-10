@@ -67,7 +67,6 @@ describe('useCrud - Simple Coverage Tests', () => {
       });
 
       expect(result.current.list).toEqual(mockUsers);
-      expect(result.current.count).toBe(1);
     });
 
     it('should handle action with callback', async () => {
@@ -270,7 +269,6 @@ describe('useCrud - Simple Coverage Tests', () => {
       });
 
       expect(result.current.list).toEqual(mockUsers);
-      expect(result.current.count).toBe(10);
     });
 
     it('should handle getList with direct array response', async () => {
@@ -296,7 +294,6 @@ describe('useCrud - Simple Coverage Tests', () => {
       });
 
       expect(result.current.list).toEqual(mockUsers);
-      expect(result.current.count).toBe(2);
     });
   });
 

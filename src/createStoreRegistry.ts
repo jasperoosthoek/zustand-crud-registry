@@ -9,11 +9,9 @@ import type { Config, ValidatedConfig, Pagination } from "./config";
 
 export type CrudState<T, S> = {
   record: { [key: string]: T } | null;
-  count: number;
   setList: (data: T[]) => void;
   patchList: (data: Partial<T>[]) => void;
   updateList: (data: T[]) => void;
-  setCount: (count: number) => void;
   setInstance: (instance: T) => void;
   updateInstance: (instance: T) => void;
   deleteInstance: (instance: T) => void;
@@ -55,7 +53,6 @@ export function createStoreRegistry<Models extends Record<string, any>>() {
       const store: CrudStore<Models[K], K, C, typeof validated> = Object.assign(
         create<CrudState<Models[K], C['state']>>((set) => ({
           record: null,
-          count: 0,
           setList: (list) => set({ record: Object.fromEntries(list.map((item) => [(item as any)[byKey], item]))}),
           patchList: (list: Partial<Models[K]>[]) =>
             set((state) => {
@@ -85,17 +82,22 @@ export function createStoreRegistry<Models extends Record<string, any>>() {
 
               return {
                 record,
-                count: state.count + newCount,
+                ...state.pagination
+                  ? { pagination: { ...state.pagination, count: state.pagination.count + newCount } }
+                  : {},
               };
             }),
           setInstance: (instance: Models[K]) =>
             set((state) => {
+              const isNew = !(state.record && state.record[(instance as any)[byKey]]);
               return {
                 record: {
                   ...state.record || {},
                   [(instance as any)[byKey]]: instance,
                 },
-                ...{ count: state.count + (state.record && state.record[(instance as any)[byKey]] ? 0 : 1) }
+                ...state.pagination && isNew
+                  ? { pagination: { ...state.pagination, count: state.pagination.count + 1 } }
+                  : {},
               };
             }),
           updateInstance: (instance: Models[K]) =>
@@ -123,10 +125,11 @@ export function createStoreRegistry<Models extends Record<string, any>>() {
 
               return {
                 record: newList,
-                count: state.count > 0 ? state.count - 1 : 0,
+                ...state.pagination
+                  ? { pagination: { ...state.pagination, count: Math.max(0, state.pagination.count - 1) } }
+                  : {},
               };
             }),
-          setCount: (count) => set({ count }),
           loadingState: {},
           setLoadingState: (key, value) =>
             set((state) => ({

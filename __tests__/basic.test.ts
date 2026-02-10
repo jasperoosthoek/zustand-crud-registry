@@ -84,7 +84,6 @@ describe('Basic Store Registry', () => {
 
     // Initial state
     expect(state.record).toBeNull();
-    expect(state.count).toBe(0);
 
     // Set list
     const mockUsers: TestUser[] = [
@@ -98,10 +97,6 @@ describe('Basic Store Registry', () => {
       1: mockUsers[0],
       2: mockUsers[1],
     });
-
-    // Set count
-    state.setCount(mockUsers.length);
-    expect(store.getState().count).toBe(2);
   });
 
   it('should handle loading states', () => {
