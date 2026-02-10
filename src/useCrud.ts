@@ -117,6 +117,7 @@ export function useCrud<
       const {
         callback: actionCallback,
         onError: actionOnError,
+        onResponse: configOnResponse,
         method,
         route,
         prepare,
@@ -171,12 +172,13 @@ export function useCrud<
         } else if (actionKey === 'delete') {
           await state.deleteInstance(data)
         }
-        
-        await finishAction(store, loadingStateKey); 
 
+        callIfFunc(configOnResponse, responseData, { data, args, params });
         callIfFunc(act.onResponse, responseData);
         callIfFunc(actionCallback, responseData);
         callIfFunc(callback, responseData);
+
+        await finishAction(store, loadingStateKey);
 
         return responseData;
       } catch (error) {

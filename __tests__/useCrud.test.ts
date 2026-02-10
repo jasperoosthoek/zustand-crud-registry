@@ -166,6 +166,85 @@ describe('useCrud', () => {
       expect(result.current.activate.isLoading).toBe(false);
       expect(result.current.deactivate.isLoading).toBe(false);
     });
+
+    it('should call config-level onResponse for custom actions', async () => {
+      const onResponseMock = jest.fn();
+      const responsePayload = { id: 1, name: 'John Doe', active: true };
+
+      const mockAxiosFn = jest.fn().mockResolvedValueOnce({ data: responsePayload });
+      Object.assign(mockAxiosFn, mockAxios);
+
+      const storeWithOnResponse = getOrCreateStore('usersOnResponse', {
+        axios: mockAxiosFn as any,
+        route: '/users',
+        actions: { getList: true },
+        customActions: {
+          activate: {
+            route: (user: TestUser) => `/users/${user.id}/activate`,
+            method: 'post' as const,
+            onResponse: onResponseMock,
+          },
+        },
+      });
+
+      const { result } = renderHook(() => useCrud(storeWithOnResponse));
+
+      await act(async () => {
+        await result.current.activate(
+          { id: 1, name: 'John Doe', email: 'john@example.com' },
+          { args: { reason: 'test' }, params: { notify: true } },
+        );
+      });
+
+      expect(onResponseMock).toHaveBeenCalledTimes(1);
+      expect(onResponseMock).toHaveBeenCalledWith(
+        responsePayload,
+        {
+          data: { id: 1, name: 'John Doe', email: 'john@example.com' },
+          args: { reason: 'test' },
+          params: { notify: true },
+        },
+      );
+    });
+  });
+
+  describe('config-level onResponse for standard actions', () => {
+    it('should call config-level onResponse for getList', async () => {
+      const onResponseMock = jest.fn();
+      const users = [
+        { id: 1, name: 'John Doe', email: 'john@example.com' },
+        { id: 2, name: 'Jane Smith', email: 'jane@example.com' },
+      ];
+
+      const mockAxiosFn = jest.fn().mockResolvedValueOnce({ data: users });
+      Object.assign(mockAxiosFn, mockAxios);
+
+      const storeWithOnResponse = getOrCreateStore('usersGetListOnResponse', {
+        axios: mockAxiosFn as any,
+        route: '/users',
+        actions: {
+          getList: {
+            onResponse: onResponseMock,
+          },
+        },
+      });
+
+      const { result } = renderHook(() => useCrud(storeWithOnResponse));
+
+      await act(async () => {
+        await result.current.getList({ params: { active: true } });
+      });
+
+      expect(onResponseMock).toHaveBeenCalledTimes(1);
+      expect(onResponseMock).toHaveBeenCalledWith(
+        users,
+        {
+          data: { params: { active: true } },
+          args: undefined,
+          params: { active: true },
+        },
+      );
+    });
   });
 
   describe('includeRecord option', () => {

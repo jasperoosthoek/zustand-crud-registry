@@ -80,6 +80,7 @@ describe('config', () => {
         prepare: null,
         callback: null,
         onError: null,
+        onResponse: null,
         prepareResponse: null,
         route: '/users',
       });
@@ -89,6 +90,7 @@ describe('config', () => {
         prepare: null,
         callback: null,
         onError: null,
+        onResponse: null,
         prepareResponse: null,
         route: '/users',
       });
@@ -100,6 +102,7 @@ describe('config', () => {
         prepare: null,
         callback: null,
         onError: null,
+        onResponse: null,
         prepareResponse: null,
         route: expect.any(Function),
       });
@@ -109,6 +112,7 @@ describe('config', () => {
         prepare: null,
         callback: null,
         onError: null,
+        onResponse: null,
         route: '/users/delete',
       });
     });

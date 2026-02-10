@@ -45,3 +45,6 @@
 ##### Version 0.0.13
 - Move `/src/__tests__` to `/__tests__`
 - Remove debug code that made api calls slow
+
+##### Version 0.0.13
+- All actions have optional `onResponse` function that handles `Axios` response data

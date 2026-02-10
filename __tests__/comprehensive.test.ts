@@ -371,6 +371,7 @@ describe('Zustand CRUD Registry', () => {
         prepare: null,
         callback: null,
         onError: null,
+        onResponse: null,
         prepareResponse: null,
         route: '/users',
       });
@@ -380,6 +381,7 @@ describe('Zustand CRUD Registry', () => {
         prepare: null,
         callback: null,
         onError: null,
+        onResponse: null,
         prepareResponse: null,
         route: '/users',
       });
@@ -389,6 +391,7 @@ describe('Zustand CRUD Registry', () => {
         prepare: null,
         callback: null,
         onError: null,
+        onResponse: null,
         prepareResponse: null,
         route: expect.any(Function),
       });

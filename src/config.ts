@@ -33,6 +33,7 @@ export type Callback = (responseData: any) => void;
 export type AsyncFunction<T> = {
   callback: Callback,
   onError: OnError,
+  onResponse: OnResponse | null,
   method: Method;
   prepare: Prepare | null,
   route: Route;
@@ -53,12 +54,10 @@ export type GetConfig<T> = AsyncDetailFunction<T>;
 export type UpdateConfig<T> = AsyncDetailFunction<T>;
 export type DeleteConfig<T> = Omit<AsyncFunction<T>, 'prepareResponse'>;
 
-export type HandleResponseOptions = PrepareDataResponseOptions;
-export type HandleResponse = (responseData: any, options: HandleResponseOptions) => void;
+export type OnResponseOptions = PrepareDataResponseOptions;
+export type OnResponse = (responseData: any, options: OnResponseOptions) => void;
 
-export interface ValidCustomActionConfig<T> extends Omit<AsyncFunction<T>, 'prepareResponse'> {
-  handleResponse: HandleResponse;
-}
+export interface ValidCustomActionConfig<T> extends Omit<AsyncFunction<T>, 'prepareResponse'> {}
 
 export interface CustomActionConfig<T> extends Partial<Omit<ValidCustomActionConfig<T>, 'route'>> {
   route: Route;
@@ -205,6 +204,7 @@ export const validateConfig = <
             prepare: null,
             callback: null,
             onError,
+            onResponse: null,
             prepareResponse: null,
             route,
             ...typeof actions.getList === 'object' ? actions.getList : {},
@@ -216,6 +216,7 @@ export const validateConfig = <
             prepare: null,
             callback: null,
             onError,
+            onResponse: null,
             prepareResponse: null,
             route,
             ...typeof actions.create === 'object' ? actions.create : {},
@@ -227,6 +228,7 @@ export const validateConfig = <
             prepare: null,
             callback: null,
             onError,
+            onResponse: null,
             prepareResponse: null,
             route: detailRoute,
             ...typeof actions.get === 'object' ? actions.get : {},
@@ -238,6 +240,7 @@ export const validateConfig = <
             prepare: null,
             callback: null,
             onError,
+            onResponse: null,
             prepareResponse: null,
             route: detailRoute,
             ...typeof actions.update === 'object' ? actions.update : {},
@@ -249,6 +252,7 @@ export const validateConfig = <
             prepare: null,
             callback: null,
             onError,
+            onResponse: null,
             route: detailRoute,
             ...typeof actions.delete === 'object' ? actions.delete : {},
           } as DeleteConfig<T>}
