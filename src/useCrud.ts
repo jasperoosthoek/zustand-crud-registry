@@ -149,7 +149,6 @@ export function useCrud<
       
       try {
         const response = await axios(mergedAxiosConfig);
-        await sleep(500)
         let responseData = response.data;
         
         const state = store.getState()
