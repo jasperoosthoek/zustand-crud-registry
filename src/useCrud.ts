@@ -41,10 +41,10 @@ export function useCrud<
   C extends Config<K, T>
 >(
   store: CrudStore<T, K, C, ValidatedConfig<K, T, C>>,
-  options?: {
-    skip?: boolean;
-    params?: Record<string, string | number | boolean>;
-  }
+  // options?: {
+  //   skip?: boolean;
+  //   params?: Record<string, string | number | boolean>;
+  // }
 ) {
   const list = useList(store);
   const actions = useActions(store);
