@@ -9,7 +9,7 @@ import type { Config, ValidatedConfig, Pagination } from "./config";
 
 export type CrudState<T, S> = {
   record: { [key: string]: T } | null;
-  setList: (data: T[]) => void;
+  setList: (data: T[] | null) => void;
   patchList: (data: Partial<T>[]) => void;
   updateList: (data: T[]) => void;
   setInstance: (instance: T) => void;
@@ -53,7 +53,7 @@ export function createStoreRegistry<Models extends Record<string, any>>() {
       const store: CrudStore<Models[K], K, C, typeof validated> = Object.assign(
         create<CrudState<Models[K], C['state']>>((set) => ({
           record: null,
-          setList: (list) => set({ record: Object.fromEntries(list.map((item) => [(item as any)[byKey], item]))}),
+          setList: (list) => set({ record: list ? Object.fromEntries(list.map((item) => [(item as any)[byKey], item])) : null }),
           patchList: (list: Partial<Models[K]>[]) =>
             set((state) => {
               if (!state.record) return {};
