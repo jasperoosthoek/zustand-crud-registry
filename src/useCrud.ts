@@ -207,20 +207,25 @@ export function useCrud<
 
   const actions: Record<string, unknown> = {
     ...'get' in configActions
-      ? { get: useMemo(() => getAction<T, 'get', undefined>('get'), [loadingState.get]) }
+      ? { get: useMemo(() => getAction<T, 'get', undefined>('get'), []) }
       : {},
     ...'getList' in configActions
-      ? { getList: useMemo(() => getAction<T, 'getList', undefined>('getList'), [loadingState.getList]) }
+      ? { getList: useMemo(() => getAction<T, 'getList', undefined>('getList'), []) }
       : {},
     ...'create' in configActions
-      ? { create: useMemo(() => getAction<T, 'create', undefined>('create'), [loadingState.create]) }
+      ? { create: useMemo(() => getAction<T, 'create', undefined>('create'), []) }
       : {},
     ...'update' in configActions
-      ? { update: useMemo(() => getAction<T, 'update', undefined>('update'), [loadingState.update]) }
+      ? { update: useMemo(() => getAction<T, 'update', undefined>('update'), []) }
       : {},
     ...'delete' in configActions
-      ? { delete: useMemo(() => getAction<T, 'delete', undefined>('delete'), [loadingState.delete]) }
+      ? { delete: useMemo(() => getAction<T, 'delete', undefined>('delete'), []) }
       : {},
+  }
+
+  // Update loading state properties on stable action refs (every render)
+  for (const key of Object.keys(actions)) {
+    Object.assign(actions[key] as object, loadingState[key] || defaultLoadingState);
   }
 
   function buildCustomActions<
@@ -236,12 +241,17 @@ export function useCrud<
     return entries.reduce((acc, action) => {
       acc[action] = useMemo(
         () => getAction<T, 'custom', typeof action>('custom', action),
-        [loadingState[action as string]]
+        []
       );
       return acc;
     }, {} as CustomActionFunctions<T, V>);
   }
   const customActionConfig = buildCustomActions(store, loadingState);
+
+  // Update loading state properties on stable custom action refs (every render)
+  for (const key of Object.keys(customActionConfig)) {
+    Object.assign((customActionConfig as Record<string, object>)[key], loadingState[key] || defaultLoadingState);
+  }
 
   const list = useMemo(() => record ? Object.values(record) : null, [record]);
 

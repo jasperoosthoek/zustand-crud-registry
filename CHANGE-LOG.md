@@ -56,3 +56,4 @@
 ##### Upcoming
 - Make subcribing to `pagination`
 - Remove `useStore` hook which leads to unnecessary renders
+- Action functions are now referentially stable with loading state properties mutated in place on each render.
