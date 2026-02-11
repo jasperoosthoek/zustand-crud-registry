@@ -52,3 +52,7 @@
 
 ##### Version 0.1.1
 - Make all fields in `config.pagination` optional
+
+##### Upcoming
+- Make subcribing to `pagination`
+- Remove `useStore` hook which leads to unnecessary renders

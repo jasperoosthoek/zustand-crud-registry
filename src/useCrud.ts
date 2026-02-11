@@ -89,8 +89,8 @@ export function useCrud<
 ) {
   const { axios, actions: configActions, customActions, pagination: paginationConfig } = store.config;
   const record = store((s) => s.record);
-  const stateData = store.config.state && Object.keys(store.config.state).length > 0 ? store((s) => s.state) : undefined;
-  const setState = store.config.state && Object.keys(store.config.state).length > 0 ? store((s) => s.setState) : undefined;
+  const stateData = store.config.state && Object.keys(store.config.state).length > 0 && store((s) => s.state);
+  const setState = store.config.state && Object.keys(store.config.state).length > 0 && store((s) => s.setState);
   const pagination = paginationConfig && store((s) => s.pagination);
   const setPagination = paginationConfig && store((s) => s.setPagination);
   const loadingState = store((s) => s.loadingState);

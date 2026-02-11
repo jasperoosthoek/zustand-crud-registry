@@ -14,8 +14,7 @@
     "src/config.ts",
     "src/createStoreRegistry.ts",
     "src/loadingState.ts",
-    "src/useCrud.ts",
-    "src/useStore.ts"
+    "src/useCrud.ts"
   ],
   "compilerOptions": {
     "outDir": "./dist/",
