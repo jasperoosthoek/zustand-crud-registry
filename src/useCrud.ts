@@ -4,17 +4,35 @@ import { usePagination } from "./usePagination";
 import { useCrudState } from "./useCrudState";
 
 import type { CrudStore } from "./createStoreRegistry";
-import type { Config, ValidatedConfig, ValidConfig, Pagination } from "./config"
+import type { Config, ValidatedConfig, ValidConfig, Pagination, Prettify } from "./config"
 import type { CustomActionFunctions, ActionFunctions } from "./useActions";
-
-// Re-export everything from useActions for backwards compatibility
-export * from './useActions';
 
 type ConditionalActionFunctions<
   T,
   C extends ValidConfig<T>
 > = {
   [K in keyof C['actions'] & keyof ActionFunctions<T>]: ActionFunctions<T>[K];
+};
+
+// Mapped types resolve with generics (conditional types don't).
+// When C has 'pagination' as a key → produces { pagination: ...; setPagination: ... }
+// When C doesn't → iterates over never → produces {}
+type PaginationFields<C> = {
+  [K in Extract<keyof C, 'pagination'>]: Pagination;
+} & {
+  [K in Extract<keyof C, 'pagination'> as 'setPagination']: (partial: Partial<Pagination>) => void;
+};
+
+// When C has 'state' as a key → { state: S; setState: ... }. When not → {}
+type StateFields<C, S> = {
+  [K in Extract<keyof C, 'state'> as 'state']: S;
+} & {
+  [K in Extract<keyof C, 'state'> as 'setState']: (subState: Partial<S>) => void;
+};
+
+// When C has 'includeRecord' as a key → { record: ... }. When not → {}
+type RecordFields<T, C> = {
+  [K in Extract<keyof C, 'includeRecord'> as 'record']: { [key: string]: T } | null;
 };
 
 export function useCrud<
@@ -52,23 +70,14 @@ export function useCrud<
       ? { state: customState.state, setState: customState.setState }
       : {},
     ...actions,
-  } as {
-    list: T[] | null;
-    pagination?: Pagination;
-    setPagination?: (partial: Partial<Pagination>) => void;
-  } & ConditionalActionFunctions<T, V> & (
-  keyof S extends never
-    ? {}
-    : {
-        state: S;
-        setState: (subState: Partial<S>) => void;
-      }
-  ) & CustomActionFunctions<T, V>
-   & (
-      C extends { includeRecord: true }
-        ? {record: { [key: string]:  T} | null }
-        : {}
-    )
+  } as Prettify<
+    { list: T[] | null }
+    & ConditionalActionFunctions<T, V>
+    & PaginationFields<C>
+    & StateFields<C, S>
+    & CustomActionFunctions<T, V>
+    & RecordFields<T, C>
+  >
 
   return output;
 }

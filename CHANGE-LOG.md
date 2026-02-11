@@ -57,3 +57,4 @@
 - Make subcribing to `pagination`
 - Remove `useStore` hook which leads to unnecessary renders
 - Action functions are now referentially stable with loading state properties mutated in place on each render.
+- Prettify types and fix many broken compound types by replacing conditional with mapped types

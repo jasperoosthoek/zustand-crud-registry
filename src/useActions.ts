@@ -4,7 +4,7 @@ import { defaultLoadingState, initiateAction, finishAction, actionError, getLoad
 import type { AxiosRequestConfig, Method } from 'axios'
 import type { LoadingStateValue } from "./loadingState";
 import type { CrudStore } from "./createStoreRegistry";
-import type { Config, ValidatedConfig, ValidConfig, AsyncFunction, Route, Pagination } from "./config"
+import type { Config, ValidatedConfig, ValidConfig, AsyncFunction, Route, Pagination, Prettify } from "./config"
 
 export const callIfFunc = (func: any, ...params: any[]) => {
   if (typeof func === 'function') {
@@ -22,14 +22,16 @@ export type AsyncFuncProps = {
 
 export type onResponse = { onResponse?: (data: any) => void };
 
-export type CustomActionFunction<T> = ((data?: any, args?: AsyncFuncProps) => Promise<T | void>) & onResponse & LoadingStateValue
+type ActionProps = Prettify<onResponse & LoadingStateValue>;
+
+export type CustomActionFunction<T> = ((data?: any, args?: AsyncFuncProps) => Promise<T | void>) & ActionProps
 
 export type ActionFunctions<T> = {
-  get: ((data: any, args?: AsyncFuncProps) => Promise<T | void>) & onResponse & LoadingStateValue;
-  getList: ((args?: AsyncFuncProps) => Promise<T[] | void>) & onResponse & LoadingStateValue;
-  create: ((instance: Partial<T>, args?: AsyncFuncProps) => Promise<T | void>) & onResponse & LoadingStateValue;
-  update: ((instance: Partial<T>, args?: AsyncFuncProps) => Promise<T | void>) & onResponse & LoadingStateValue;
-  delete: ((instance: Partial<T>, args?: AsyncFuncProps) => Promise<void>) & onResponse & LoadingStateValue;
+  get: ((data: any, args?: AsyncFuncProps) => Promise<T | void>) & ActionProps;
+  getList: ((args?: AsyncFuncProps) => Promise<T[] | void>) & ActionProps;
+  create: ((instance: Partial<T>, args?: AsyncFuncProps) => Promise<T | void>) & ActionProps;
+  update: ((instance: Partial<T>, args?: AsyncFuncProps) => Promise<T | void>) & ActionProps;
+  delete: ((instance: Partial<T>, args?: AsyncFuncProps) => Promise<void>) & ActionProps;
   custom: CustomActionFunction<T>;
 };
 

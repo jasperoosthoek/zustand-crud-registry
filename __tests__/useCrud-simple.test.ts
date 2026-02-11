@@ -1,5 +1,6 @@
 import { createStoreRegistry } from '../src/createStoreRegistry';
-import { useCrud, callIfFunc } from '../src/useCrud';
+import { useCrud } from '../src/useCrud';
+import { callIfFunc } from '../src/useActions';
 import { renderHook, act } from '@testing-library/react';
 
 // Simple mock that can be used as axios function

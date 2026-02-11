@@ -1,5 +1,7 @@
 import type { Method, AxiosInstance } from "axios";
 
+export type Prettify<T> = { [K in keyof T]: T[K] } & {};
+
 export type OnError = (error: any) => void;
 
 export type DetailRoute = string | ((instance: any, { args, 
@@ -133,16 +135,29 @@ export interface Config<K extends string, T> extends BaseConfig<T> {}
 type ActionKeys<K extends string, T, TConfig extends Config<K, T>> =
   keyof TConfig['actions'];
 
+type ValidatedActionTypes<T> = {
+  get: GetConfig<T>;
+  getList: GetListConfig<T>;
+  getAll: GetAllConfig<T>;
+  create: CreateConfig<T>;
+  update: UpdateConfig<T>;
+  delete: DeleteConfig<T>;
+};
+
 type ActionConfigIfExists<
-  K extends string, 
+  K extends string,
   T,
   TConfig extends Config<K, T>,
   TActionName extends keyof Actions<T>
-> = TActionName extends keyof ActionKeys<K, T, TConfig>
-    ? (TConfig['actions'][TActionName] extends true | object ? Actions<T>[TActionName] : never)
+> = TActionName extends ActionKeys<K, T, TConfig>
+    ? (TConfig['actions'][TActionName] extends true | object
+        ? TActionName extends keyof ValidatedActionTypes<T>
+          ? ValidatedActionTypes<T>[TActionName]
+          : never
+        : never)
       : never;
 
-export type ValidatedConfig<K extends string, T, TConfig extends Config<K, T>> = {
+export type ValidatedConfig<K extends string, T, TConfig extends Config<K, T>> = Prettify<{
   id: string;
   byKey: string;
   parseIdToInt: boolean;
@@ -158,11 +173,11 @@ export type ValidatedConfig<K extends string, T, TConfig extends Config<K, T>> =
 
   customActions: ValidCustomActions<K, T, TConfig>;
   route: Route;
-  selectedId?: string,
   includeRecord: boolean
-  selectedIds?: string,
+  // selectedId?: string,
+  // selectedIds?: string,
   pagination: PaginationConfig | null;
-}
+}>
 
 export const getDetailRoute = (route: Route | null, id: string) => (
   typeof route === 'function'
@@ -339,7 +354,7 @@ export type ValidConfig<T> = {
   customActions?: CustomActions<T>;
   includeRecord: boolean;
   route?: Route;
-  selectedId?: string,
-  selectedIds?: string,
+  // selectedId?: string,
+  // selectedIds?: string,
   pagination: PaginationConfig | null;
 };

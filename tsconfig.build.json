@@ -15,6 +15,7 @@
     "src/createStoreRegistry.ts",
     "src/loadingState.ts",
     "src/useList.ts",
+    "src/useRecord.ts",
     "src/useActions.ts",
     "src/usePagination.ts",
     "src/useCrudState.ts",
