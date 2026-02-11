@@ -87,14 +87,13 @@ export function useCrud<
     params?: Record<string, string | number | boolean>;
   }
 ) {
+  const { axios, actions: configActions, customActions, pagination: paginationConfig } = store.config;
   const record = store((s) => s.record);
   const stateData = store.config.state && Object.keys(store.config.state).length > 0 ? store((s) => s.state) : undefined;
   const setState = store.config.state && Object.keys(store.config.state).length > 0 ? store((s) => s.setState) : undefined;
-  const pagination = store((s) => s.pagination);
-  const setPagination = store((s) => s.setPagination);
+  const pagination = paginationConfig && store((s) => s.pagination);
+  const setPagination = paginationConfig && store((s) => s.setPagination);
   const loadingState = store((s) => s.loadingState);
-  const { axios, actions: configActions, customActions } = store.config;
-  const paginationConfig = store.config.pagination;
   
   function getAction<T, K extends keyof ActionFunctions<T>, J extends keyof C['customActions'] | undefined>(
     actionKey: K,
@@ -244,8 +243,10 @@ export function useCrud<
   }
   const customActionConfig = buildCustomActions(store, loadingState);
 
+  const list = useMemo(() => record ? Object.values(record) : null, [record]);
+
   const output = {
-    list: record ? Object.values(record) : null,
+    list,
     ...paginationConfig
       ? { pagination, setPagination }
       : {},
