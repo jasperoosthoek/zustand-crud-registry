@@ -21,7 +21,7 @@ const plain = useCrud(plainStore);
 // The priority is Prettify flattening; strict exclusion is secondary.
 plain.list;
 
-// Pagination should also not exist:
+// Pagination should not exist:
 // @ts-expect-error — no pagination configured
 plain.pagination;
 
@@ -36,16 +36,11 @@ const singleStore = getOrCreateSingle("items", {
 
 const single = useCrud(singleStore);
 
-// Single-select: selected.instance + selected.id
-const _inst: Item | null = single.selected.instance;
-const _id: string | null = single.selected.id;
+// useCrud selected is T | T[] | null (union — can't distinguish single/multiple)
+single.selected;
 single.select(1);
 single.toggle(1);
 single.clear();
-
-// With as-cast approach, both single and multiple fields exist on selected
-single.selected.instances;
-single.selected.ids;
 
 // ── Store WITH select: 'multiple' ─────────────────────────────────
 const getOrCreateMulti = createStoreRegistry<{ items: Item }>();
@@ -58,32 +53,25 @@ const multiStore = getOrCreateMulti("items", {
 
 const multi = useCrud(multiStore);
 
-// Multiple-select: selected.instances + selected.ids
-const _items: Item[] = multi.selected.instances;
-const _mids: string[] = multi.selected.ids;
+// useCrud selected is T | T[] | null (union)
+multi.selected;
 multi.toggle(1);
 multi.clear();
 
-// With as-cast approach, both single and multiple fields exist on selected
-multi.selected.instance;
-multi.selected.id;
-
-// ── useSelect overloads ────────────────────────────────────────────
+// ── useSelect overloads — precise types ─────────────────────────────
 const selSingle = useSelect(singleStore);
-const _si: Item | null = selSingle.selected.instance;
-const _sid: string | null = selSingle.selected.id;
-// @ts-expect-error — instances only on multiple
-selSingle.selected.instances;
-// @ts-expect-error — ids only on multiple
-selSingle.selected.ids;
+const _si: Item | null = selSingle.selected;
+const _sid: string | null = selSingle.selectedId;
+selSingle.select(1);
+selSingle.toggle(1);
+selSingle.clear();
 
 const selMulti = useSelect(multiStore);
-const _mi: Item[] = selMulti.selected.instances;
-const _msids: string[] = selMulti.selected.ids;
-// @ts-expect-error — instance only on single
-selMulti.selected.instance;
-// @ts-expect-error — id only on single
-selMulti.selected.id;
+const _mi: Item[] = selMulti.selected;
+const _msids: string[] = selMulti.selectedIds;
+selMulti.select(1);
+selMulti.toggle(1);
+selMulti.clear();
 
 // ── Store with pagination + state + record ─────────────────────────
 const getOrCreateFull = createStoreRegistry<{ items: Item }>();
@@ -103,5 +91,4 @@ full.setPagination({ offset: 10 });
 full.state;
 full.setState({ filter: 'active' });
 full.record;
-full.selected.instance;
-full.selected.id;
+full.selected;

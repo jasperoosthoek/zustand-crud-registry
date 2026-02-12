@@ -14,21 +14,22 @@ export type SelectResultBase<T> = {
   instances: T[];
   instance: T | null;
   ids: string[];
-  id: string | null;
   select: (instanceOrId: T | string | number | null) => void;
   toggle: (instanceOrId: T | string | number) => void;
   clear: () => void;
 };
 
 export type SingleSelectResult<T> = {
-  selected: { instance: T | null; id: string | null };
+  selected: T | null;
+  selectedId: string | null;
   select: (instanceOrId: T | string | number | null) => void;
   toggle: (instanceOrId: T | string | number) => void;
   clear: () => void;
 };
 
 export type MultipleSelectResult<T> = {
-  selected: { instances: T[]; ids: string[] };
+  selected: T[];
+  selectedIds: string[];
   select: (instanceOrId: T | string | number | null) => void;
   toggle: (instanceOrId: T | string | number) => void;
   clear: () => void;
@@ -53,7 +54,6 @@ export function useSelectBase<T, K extends string, C extends Config<K, T>>(
   }, [record, selectedIds]);
 
   const instance = instances[0] ?? null;
-  const id = selectedIds[0] ?? null;
 
   const select = useCallback(
     (instanceOrId: T | string | number | null) => {
@@ -89,14 +89,15 @@ export function useSelectBase<T, K extends string, C extends Config<K, T>>(
     [store]
   );
 
-  return { instances, instance, ids: selectedIds, id, select, toggle, clear };
+  return { instances, instance, ids: selectedIds, select, toggle, clear };
 }
 
 // ── Clip functions ─────────────────────────────────────────────────
 
 export function clipSingle<T>(base: SelectResultBase<T>): SingleSelectResult<T> {
   return {
-    selected: { instance: base.instance, id: base.id },
+    selected: base.instance,
+    selectedId: base.ids[0] ?? null,
     select: base.select,
     toggle: base.toggle,
     clear: base.clear,
@@ -105,7 +106,8 @@ export function clipSingle<T>(base: SelectResultBase<T>): SingleSelectResult<T> 
 
 export function clipMultiple<T>(base: SelectResultBase<T>): MultipleSelectResult<T> {
   return {
-    selected: { instances: base.instances, ids: base.ids },
+    selected: base.instances,
+    selectedIds: base.ids,
     select: base.select,
     toggle: base.toggle,
     clear: base.clear,

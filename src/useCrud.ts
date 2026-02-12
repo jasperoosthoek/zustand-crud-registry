@@ -2,12 +2,11 @@ import { useList } from "./useList";
 import { useActions } from "./useActions";
 import { usePagination } from "./usePagination";
 import { useCrudState } from "./useCrudState";
-import { useSelectBase, clipSingle, clipMultiple } from "./useSelectBase";
+import { useSelectBase } from "./useSelectBase";
 
 import type { CrudStore } from "./createStoreRegistry";
 import type { Config, ValidatedConfig, ValidConfig, Pagination, Prettify } from "./config"
 import type { CustomActionFunctions, ActionFunctions } from "./useActions";
-import type { SingleSelectResult, MultipleSelectResult } from "./useSelectBase";
 
 type ConditionalActionFunctions<
   T,
@@ -35,8 +34,16 @@ type RecordFields<T, C> = {
   [K in Extract<keyof C, 'includeRecord'> as 'record']: { [key: string]: T } | null;
 };
 
+// Indexed type map: resolves selected to T | null or T[] based on C['select'].
+type SelectedTypeMap<T> = {
+  single: T | null;
+  multiple: T[];
+};
+
+// useCrud exposes selected (instance or instances) but NOT selectedIds.
+// useSelect is the hook that additionally exposes selectedIds.
 type SelectFields<T, C> = {
-  [K in Extract<keyof C, 'select'> as 'selected']: { instance: T | null; id: string | null; instances: T[]; ids: string[] };
+  [K in Extract<keyof C, 'select'> as 'selected']: SelectedTypeMap<T>[C[K] & keyof SelectedTypeMap<T>];
 } & {
   [K in Extract<keyof C, 'select'> as 'select']: (instanceOrId: T | string | number | null) => void;
 } & {
@@ -66,7 +73,12 @@ export function useCrud<
   const selectConfig = store.config.select;
   const base = selectConfig && useSelectBase(store);
   const sel = base && selectConfig
-    ? (selectConfig === 'single' ? clipSingle(base) : clipMultiple(base))
+    ? {
+        selected: selectConfig === 'single' ? base.instance : base.instances,
+        select: base.select,
+        toggle: base.toggle,
+        clear: base.clear,
+      }
     : null;
 
   type V = ValidatedConfig<K, T, C>;

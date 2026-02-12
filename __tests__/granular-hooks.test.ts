@@ -537,11 +537,8 @@ describe('granular hooks', () => {
       });
 
       const { result } = renderHook(() => useSelect(store));
-      expect(result.current.selected.instance).toBeNull();
-      expect(result.current.selected.id).toBeNull();
-      // instances/ids are NOT on single-select's selected object
-      expect((result.current.selected as any).instances).toBeUndefined();
-      expect((result.current.selected as any).ids).toBeUndefined();
+      expect(result.current.selected).toBeNull();
+      expect(result.current.selectedId).toBeNull();
     });
 
     it('should select by instance', () => {
@@ -557,8 +554,8 @@ describe('granular hooks', () => {
       const { result } = renderHook(() => useSelect(store));
 
       act(() => { result.current.select(mockUsers[0]); });
-      expect(result.current.selected.id).toBe('1');
-      expect(result.current.selected.instance).toEqual(mockUsers[0]);
+      expect(result.current.selectedId).toBe('1');
+      expect(result.current.selected).toEqual(mockUsers[0]);
     });
 
     it('should select by raw number id', () => {
@@ -574,8 +571,8 @@ describe('granular hooks', () => {
       const { result } = renderHook(() => useSelect(store));
 
       act(() => { result.current.select(2); });
-      expect(result.current.selected.id).toBe('2');
-      expect(result.current.selected.instance).toEqual(mockUsers[1]);
+      expect(result.current.selectedId).toBe('2');
+      expect(result.current.selected).toEqual(mockUsers[1]);
     });
 
     it('should select by raw string id', () => {
@@ -591,8 +588,8 @@ describe('granular hooks', () => {
       const { result } = renderHook(() => useSelect(store));
 
       act(() => { result.current.select('3'); });
-      expect(result.current.selected.id).toBe('3');
-      expect(result.current.selected.instance).toEqual(mockUsers[2]);
+      expect(result.current.selectedId).toBe('3');
+      expect(result.current.selected).toEqual(mockUsers[2]);
     });
 
     it('should deselect with select(null)', () => {
@@ -608,11 +605,11 @@ describe('granular hooks', () => {
       const { result } = renderHook(() => useSelect(store));
 
       act(() => { result.current.select(mockUsers[0]); });
-      expect(result.current.selected.instance).not.toBeNull();
+      expect(result.current.selected).not.toBeNull();
 
       act(() => { result.current.select(null); });
-      expect(result.current.selected.instance).toBeNull();
-      expect(result.current.selected.id).toBeNull();
+      expect(result.current.selected).toBeNull();
+      expect(result.current.selectedId).toBeNull();
     });
 
     it('should toggle in single mode: replace selection', () => {
@@ -629,16 +626,16 @@ describe('granular hooks', () => {
 
       // Toggle on
       act(() => { result.current.toggle(mockUsers[0]); });
-      expect(result.current.selected.id).toBe('1');
+      expect(result.current.selectedId).toBe('1');
 
       // Toggle same → off
       act(() => { result.current.toggle(mockUsers[0]); });
-      expect(result.current.selected.id).toBeNull();
+      expect(result.current.selectedId).toBeNull();
 
       // Toggle on, then toggle different → replaces
       act(() => { result.current.toggle(mockUsers[0]); });
       act(() => { result.current.toggle(mockUsers[1]); });
-      expect(result.current.selected.id).toBe('2');
+      expect(result.current.selectedId).toBe('2');
     });
 
     it('should toggle in multiple mode: add/remove', () => {
@@ -655,12 +652,12 @@ describe('granular hooks', () => {
 
       act(() => { result.current.toggle(mockUsers[0]); });
       act(() => { result.current.toggle(mockUsers[1]); });
-      expect(result.current.selected.ids).toEqual(['1', '2']);
-      expect(result.current.selected.instances).toEqual([mockUsers[0], mockUsers[1]]);
+      expect(result.current.selectedIds).toEqual(['1', '2']);
+      expect(result.current.selected).toEqual([mockUsers[0], mockUsers[1]]);
 
       // Toggle off
       act(() => { result.current.toggle(mockUsers[0]); });
-      expect(result.current.selected.ids).toEqual(['2']);
+      expect(result.current.selectedIds).toEqual(['2']);
     });
 
     it('should clear selection', () => {
@@ -677,11 +674,11 @@ describe('granular hooks', () => {
 
       act(() => { result.current.toggle(mockUsers[0]); });
       act(() => { result.current.toggle(mockUsers[1]); });
-      expect(result.current.selected.ids).toHaveLength(2);
+      expect(result.current.selectedIds).toHaveLength(2);
 
       act(() => { result.current.clear(); });
-      expect(result.current.selected.ids).toEqual([]);
-      expect(result.current.selected.instances).toEqual([]);
+      expect(result.current.selectedIds).toEqual([]);
+      expect(result.current.selected).toEqual([]);
     });
 
     it('should derive instances from record', () => {
@@ -697,7 +694,7 @@ describe('granular hooks', () => {
       const { result } = renderHook(() => useSelect(store));
 
       act(() => { store.getState().setSelectedIds(['1', '3']); });
-      expect(result.current.selected.instances).toEqual([mockUsers[0], mockUsers[2]]);
+      expect(result.current.selected).toEqual([mockUsers[0], mockUsers[2]]);
     });
 
     it('should filter out deleted instances from selected', () => {
@@ -713,14 +710,14 @@ describe('granular hooks', () => {
       const { result } = renderHook(() => useSelect(store));
 
       act(() => { store.getState().setSelectedIds(['1', '2', '3']); });
-      expect(result.current.selected.instances).toHaveLength(3);
+      expect(result.current.selected).toHaveLength(3);
 
       // deleteInstance also cleans up selectedIds (Step 4),
       // but let's also verify derived instances handles stale ids
       // by manually setting a stale id
       act(() => { store.getState().setSelectedIds(['1', '999', '3']); });
-      expect(result.current.selected.instances).toEqual([mockUsers[0], mockUsers[2]]);
-      expect(result.current.selected.ids).toEqual(['1', '999', '3']);
+      expect(result.current.selected).toEqual([mockUsers[0], mockUsers[2]]);
+      expect(result.current.selectedIds).toEqual(['1', '999', '3']);
     });
 
     it('should update selected when record changes', () => {
@@ -736,13 +733,13 @@ describe('granular hooks', () => {
       const { result } = renderHook(() => useSelect(store));
 
       act(() => { result.current.select(1); });
-      expect(result.current.selected.instance).toEqual(mockUsers[0]);
-      expect(result.current.selected.id).toBe('1');
+      expect(result.current.selected).toEqual(mockUsers[0]);
+      expect(result.current.selectedId).toBe('1');
 
       // Update the selected instance
       act(() => { store.getState().updateInstance({ id: 1, name: 'Updated John', email: 'john@example.com' }); });
-      expect(result.current.selected.instance!.name).toBe('Updated John');
-      expect(result.current.selected.id).toBe('1');
+      expect(result.current.selected!.name).toBe('Updated John');
+      expect(result.current.selectedId).toBe('1');
     });
   });
 

@@ -646,14 +646,10 @@ describe('useCrud', () => {
 
       const { result } = renderHook(() => useCrud(selectStore));
 
-      expect(result.current.selected.instance).toBeNull();
-      expect(result.current.selected.id).toBeNull();
+      expect(result.current.selected).toBeNull();
       expect(typeof result.current.select).toBe('function');
       expect(typeof result.current.toggle).toBe('function');
       expect(typeof result.current.clear).toBe('function');
-      // instances/ids are NOT on single-select's selected object
-      expect((result.current.selected as any).instances).toBeUndefined();
-      expect((result.current.selected as any).ids).toBeUndefined();
     });
 
     it('should expose select fields when select: multiple is configured', () => {
@@ -666,7 +662,7 @@ describe('useCrud', () => {
 
       const { result } = renderHook(() => useCrud(selectStore));
 
-      expect(result.current.selected.ids).toEqual([]);
+      expect(result.current.selected).toEqual([]);
       expect(typeof result.current.toggle).toBe('function');
     });
 
@@ -679,7 +675,7 @@ describe('useCrud', () => {
       expect((result.current as any).clear).toBeUndefined();
     });
 
-    it('should expose selected.instances when select is configured', () => {
+    it('should expose selected instances when select: multiple is configured', () => {
       const selectStore = getOrCreateStore('usersWithSelectedItems', {
         axios: mockAxios,
         route: '/users',
@@ -693,7 +689,7 @@ describe('useCrud', () => {
 
       act(() => { result.current.toggle(mockUsers[0]); });
       act(() => { result.current.toggle(mockUsers[2]); });
-      expect(result.current.selected.instances).toEqual([mockUsers[0], mockUsers[2]]);
+      expect(result.current.selected).toEqual([mockUsers[0], mockUsers[2]]);
     });
 
     it('should work: single select via useCrud', () => {
@@ -709,15 +705,13 @@ describe('useCrud', () => {
       const { result } = renderHook(() => useCrud(selectStore));
 
       act(() => { result.current.select(mockUsers[0]); });
-      expect(result.current.selected.instance).toEqual(mockUsers[0]);
-      expect(result.current.selected.id).toBe('1');
+      expect(result.current.selected).toEqual(mockUsers[0]);
 
       act(() => { result.current.toggle(mockUsers[0]); });
-      expect(result.current.selected.instance).toBeNull();
-      expect(result.current.selected.id).toBeNull();
+      expect(result.current.selected).toBeNull();
 
       act(() => { result.current.clear(); });
-      expect(result.current.selected.id).toBeNull();
+      expect(result.current.selected).toBeNull();
     });
 
     it('should work: multiple select via useCrud', () => {
@@ -734,13 +728,13 @@ describe('useCrud', () => {
 
       act(() => { result.current.toggle(mockUsers[0]); });
       act(() => { result.current.toggle(mockUsers[2]); });
-      expect(result.current.selected.ids).toEqual(['1', '3']);
+      expect(result.current.selected).toEqual([mockUsers[0], mockUsers[2]]);
 
       act(() => { result.current.toggle(mockUsers[0]); });
-      expect(result.current.selected.ids).toEqual(['3']);
+      expect(result.current.selected).toEqual([mockUsers[2]]);
 
       act(() => { result.current.clear(); });
-      expect(result.current.selected.ids).toEqual([]);
+      expect(result.current.selected).toEqual([]);
     });
   });
 });
