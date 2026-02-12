@@ -537,7 +537,7 @@ describe('granular hooks', () => {
       });
 
       const { result } = renderHook(() => useSelect(store));
-      expect(result.current.selected).toEqual([]);
+      expect(result.current.selectedItems).toEqual([]);
       expect(result.current.selectedItem).toBeNull();
       expect(result.current.selectedIds).toEqual([]);
     });
@@ -654,7 +654,7 @@ describe('granular hooks', () => {
       act(() => { result.current.toggle(mockUsers[0]); });
       act(() => { result.current.toggle(mockUsers[1]); });
       expect(result.current.selectedIds).toEqual(['1', '2']);
-      expect(result.current.selected).toEqual([mockUsers[0], mockUsers[1]]);
+      expect(result.current.selectedItems).toEqual([mockUsers[0], mockUsers[1]]);
 
       // Toggle off
       act(() => { result.current.toggle(mockUsers[0]); });
@@ -679,7 +679,7 @@ describe('granular hooks', () => {
 
       act(() => { result.current.clear(); });
       expect(result.current.selectedIds).toEqual([]);
-      expect(result.current.selected).toEqual([]);
+      expect(result.current.selectedItems).toEqual([]);
     });
 
     it('should derive instances from record', () => {
@@ -695,7 +695,7 @@ describe('granular hooks', () => {
       const { result } = renderHook(() => useSelect(store));
 
       act(() => { store.getState().setSelectedIds(['1', '3']); });
-      expect(result.current.selected).toEqual([mockUsers[0], mockUsers[2]]);
+      expect(result.current.selectedItems).toEqual([mockUsers[0], mockUsers[2]]);
     });
 
     it('should filter out deleted instances from selected', () => {
@@ -711,13 +711,13 @@ describe('granular hooks', () => {
       const { result } = renderHook(() => useSelect(store));
 
       act(() => { store.getState().setSelectedIds(['1', '2', '3']); });
-      expect(result.current.selected).toHaveLength(3);
+      expect(result.current.selectedItems).toHaveLength(3);
 
       // deleteInstance also cleans up selectedIds (Step 4),
-      // but let's also verify derived selected handles stale ids
+      // but let's also verify derived selectedItems handles stale ids
       // by manually setting a stale id
       act(() => { store.getState().setSelectedIds(['1', '999', '3']); });
-      expect(result.current.selected).toEqual([mockUsers[0], mockUsers[2]]);
+      expect(result.current.selectedItems).toEqual([mockUsers[0], mockUsers[2]]);
       expect(result.current.selectedIds).toEqual(['1', '999', '3']);
     });
 

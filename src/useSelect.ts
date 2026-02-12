@@ -16,15 +16,14 @@ export function useSelect<T, K extends string, C extends Config<K, T>>(
   const record = store((s) => s.record);
   const selectedIds = store((s) => s.selectedIds);
 
-  const selected = useMemo(() => {
+  const selectedItems = useMemo(() => {
     if (!record || selectedIds.length === 0) return [];
     return selectedIds
       .map((id: string) => record[id])
       .filter(Boolean) as T[];
   }, [record, selectedIds]);
 
-  // Convenience for single-select consumers
-  const selectedItem = selected[0] ?? null;
+  const selectedItem = selectedItems[0] ?? null;
 
   const select = useCallback(
     (instanceOrId: T | string | number | null) => {
@@ -62,5 +61,5 @@ export function useSelect<T, K extends string, C extends Config<K, T>>(
     [store]
   );
 
-  return { selected, selectedItem, selectedIds, select, toggle, clear };
+  return { selectedItems, selectedItem, selectedIds, select, toggle, clear };
 }

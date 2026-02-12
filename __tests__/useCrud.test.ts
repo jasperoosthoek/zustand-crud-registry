@@ -646,7 +646,6 @@ describe('useCrud', () => {
 
       const { result } = renderHook(() => useCrud(selectStore));
 
-      expect(result.current.selected).toEqual([]);
       expect(result.current.selectedItem).toBeNull();
       expect(result.current.selectedIds).toEqual([]);
       expect(typeof result.current.select).toBe('function');
@@ -664,17 +663,30 @@ describe('useCrud', () => {
 
       const { result } = renderHook(() => useCrud(selectStore));
 
-      expect(result.current.selected).toEqual([]);
+      expect(result.current.selectedIds).toEqual([]);
       expect(typeof result.current.toggle).toBe('function');
     });
 
     it('should NOT expose select fields when select is omitted', () => {
       const { result } = renderHook(() => useCrud(store));
 
-      expect((result.current as any).selected).toBeUndefined();
       expect((result.current as any).selectedItem).toBeUndefined();
+      expect((result.current as any).selectedItems).toBeUndefined();
       expect((result.current as any).toggle).toBeUndefined();
       expect((result.current as any).clear).toBeUndefined();
+    });
+
+    it('should NOT expose selectedItems (only available via useSelect)', () => {
+      const selectStore = getOrCreateStore('usersNoSelectedItems', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { getList: true },
+        select: 'multiple',
+      });
+
+      const { result } = renderHook(() => useCrud(selectStore));
+
+      expect((result.current as any).selectedItems).toBeUndefined();
     });
 
     it('should work: single select via useCrud', () => {
@@ -714,13 +726,13 @@ describe('useCrud', () => {
 
       act(() => { result.current.toggle(mockUsers[0]); });
       act(() => { result.current.toggle(mockUsers[2]); });
-      expect(result.current.selected).toEqual([mockUsers[0], mockUsers[2]]);
+      expect(result.current.selectedIds).toEqual(['1', '3']);
 
       act(() => { result.current.toggle(mockUsers[0]); });
-      expect(result.current.selected).toEqual([mockUsers[2]]);
+      expect(result.current.selectedIds).toEqual(['3']);
 
       act(() => { result.current.clear(); });
-      expect(result.current.selected).toEqual([]);
+      expect(result.current.selectedIds).toEqual([]);
     });
   });
 });
