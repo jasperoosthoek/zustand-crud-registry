@@ -30,6 +30,10 @@ type StateFields<C, S> = {
   [K in Extract<keyof C, 'state'> as 'setState']: (subState: Partial<S>) => void;
 };
 
+type ListFields<T, C> = {
+  [K in Extract<keyof C, 'includeList'> as 'list']: T[] | null;
+};
+
 type RecordFields<T, C> = {
   [K in Extract<keyof C, 'includeRecord'> as 'record']: { [key: string]: T } | null;
 };
@@ -59,7 +63,7 @@ export function useCrud<
 >(
   store: CrudStore<T, K, C, ValidatedConfig<K, T, C>>,
 ) {
-  const list = useList(store);
+  const list = store.config.includeList && useList(store);
   const actions = useActions(store);
 
   const { pagination: paginationConfig } = store.config;
@@ -68,7 +72,8 @@ export function useCrud<
   const hasState = store.config.state && Object.keys(store.config.state).length > 0;
   const customState = hasState && useCrudState(store);
 
-  const record = store.config.includeRecord && store((s) => s.record);
+  const data = store.config.includeRecord && store((s) => s.data);
+  const record = data ? Object.fromEntries(data) : (data === false ? undefined : null);
 
   const selectConfig = store.config.select;
   const base = selectConfig && useSelectBase(store);
@@ -85,7 +90,7 @@ export function useCrud<
   type S = C['state'];
 
   return {
-    list,
+    ...store.config.includeList ? { list } : {},
     ...pag
       ? { pagination: pag.pagination, setPagination: pag.setPagination }
       : {},
@@ -96,8 +101,8 @@ export function useCrud<
     ...sel ? sel : {},
     ...actions,
   } as Prettify<
-    { list: T[] | null }
-    & ConditionalActionFunctions<T, V>
+    ConditionalActionFunctions<T, V>
+    & ListFields<T, C>
     & PaginationFields<C>
     & StateFields<C, S>
     & CustomActionFunctions<T, V>

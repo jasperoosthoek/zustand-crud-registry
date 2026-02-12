@@ -1,6 +1,12 @@
 import { createStoreRegistry } from '../src/createStoreRegistry';
 import axios from 'axios';
 
+/** Convert Map-based store data to a plain record for assertions. */
+const toRecord = (store: any) => {
+  const d = store.getState().data;
+  return d ? Object.fromEntries(d) : null;
+};
+
 // Simple unit test without React dependencies
 describe('Basic Store Registry', () => {
   interface TestUser {
@@ -83,7 +89,7 @@ describe('Basic Store Registry', () => {
     const state = store.getState();
 
     // Initial state
-    expect(state.record).toBeNull();
+    expect(state.data).toBeNull();
 
     // Set list
     const mockUsers: TestUser[] = [
@@ -92,10 +98,9 @@ describe('Basic Store Registry', () => {
     ];
 
     state.setList(mockUsers);
-    const newState = store.getState();
-    expect(newState.record).toEqual({
-      1: mockUsers[0],
-      2: mockUsers[1],
+    expect(toRecord(store)).toEqual({
+      '1': mockUsers[0],
+      '2': mockUsers[1],
     });
   });
 

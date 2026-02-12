@@ -8,7 +8,7 @@ import { defaultPagination } from "./config";
 import type { Config, ValidatedConfig, Pagination } from "./config";
 
 export type CrudState<T, S> = {
-  record: { [key: string]: T } | null;
+  data: Map<string, T> | null;
   setList: (data: T[] | null) => void;
   patchList: (data: Partial<T>[]) => void;
   updateList: (data: T[]) => void;
@@ -55,36 +55,35 @@ export function createStoreRegistry<Models extends Record<string, any>>() {
 
       const store: CrudStore<Models[K], K, C, typeof validated> = Object.assign(
         create<CrudState<Models[K], C['state']>>((set) => ({
-          record: null,
-          setList: (list) => set({ record: list ? Object.fromEntries(list.map((item) => [(item as any)[byKey], item])) : null, selectedIds: [] }),
+          data: null,
+          setList: (list) => set({
+            data: list
+              ? new Map(list.map((item) => [String((item as any)[byKey]), item]))
+              : null,
+            selectedIds: [],
+          }),
           patchList: (list: Partial<Models[K]>[]) =>
             set((state) => {
-              if (!state.record) return {};
-
-              const record = { ...state.record }
-              list.map((item) => {
-                const id = (item as any)[byKey];
-                if (record[id]) {
-                  record[id] = { ...record[id], ...item }
-                }
+              if (!state.data) return {};
+              const next = new Map(state.data);
+              list.forEach((item) => {
+                const id = String((item as any)[byKey]);
+                const existing = next.get(id);
+                if (existing) { next.set(id, { ...existing, ...item }); }
               });
-              return { record };
+              return { data: next };
             }),
           updateList: (list: Models[K][]) =>
             set((state) => {
-              const record = { ...state.record || {} };
+              const next = new Map(state.data || []);
               let newCount = 0;
-
               list.forEach((item) => {
-                const id = (item as any)[byKey];
-                if (!record[id]) {
-                  newCount++;
-                }
-                record[id] = item;
+                const id = String((item as any)[byKey]);
+                if (!next.has(id)) newCount++;
+                next.set(id, item);
               });
-
               return {
-                record,
+                data: next,
                 ...state.pagination
                   ? { pagination: { ...state.pagination, count: state.pagination.count + newCount } }
                   : {},
@@ -92,12 +91,12 @@ export function createStoreRegistry<Models extends Record<string, any>>() {
             }),
           setInstance: (instance: Models[K]) =>
             set((state) => {
-              const isNew = !(state.record && state.record[(instance as any)[byKey]]);
+              const id = String((instance as any)[byKey]);
+              const next = new Map(state.data || []);
+              const isNew = !next.has(id);
+              next.set(id, instance);
               return {
-                record: {
-                  ...state.record || {},
-                  [(instance as any)[byKey]]: instance,
-                },
+                data: next,
                 ...state.pagination && isNew
                   ? { pagination: { ...state.pagination, count: state.pagination.count + 1 } }
                   : {},
@@ -105,28 +104,21 @@ export function createStoreRegistry<Models extends Record<string, any>>() {
             }),
           updateInstance: (instance: Models[K]) =>
             set((state) => {
-              if (!state.record) return {};
-
-              return {
-                record: {
-                  ...state.record,
-                  [(instance as any)[byKey]]: {
-                    ...state.record[(instance as any)[byKey]] || {},
-                    ...instance,
-                  },
-                },
-              };
+              if (!state.data) return {};
+              const id = String((instance as any)[byKey]);
+              const next = new Map(state.data);
+              const existing = next.get(id);
+              next.set(id, existing ? { ...existing, ...instance } : instance as Models[K]);
+              return { data: next };
             }),
           deleteInstance: (instance: Models[K]) =>
             set((state) => {
-              if (!state.record) return {};
-
+              if (!state.data) return {};
               const id = String((instance as any)[byKey]);
-              const newRecord = { ...state.record };
-              if (newRecord[id]) { delete newRecord[id]; }
-
+              const next = new Map(state.data);
+              next.delete(id);
               return {
-                record: newRecord,
+                data: next,
                 ...state.pagination
                   ? { pagination: { ...state.pagination, count: Math.max(0, state.pagination.count - 1) } }
                   : {},

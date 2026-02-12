@@ -10,6 +10,6 @@ export function useList<
 >(
   store: CrudStore<T, K, C, ValidatedConfig<K, T, C>>
 ): T[] | null {
-  const record = store((s) => s.record);
-  return useMemo(() => record ? Object.values(record) : null, [record]);
+  const data = store((s) => s.data);
+  return useMemo(() => data ? Array.from(data.values()) : null, [data]);
 }

@@ -8,6 +8,12 @@ import { useCrudState } from '../src/useCrudState';
 import { useSelect } from '../src/useSelect';
 import { renderHook, act } from '@testing-library/react';
 
+/** Convert Map-based store data to a plain record for assertions. */
+const toRecord = (store: any) => {
+  const d = store.getState().data;
+  return d ? Object.fromEntries(d) : null;
+};
+
 const mockAxios = {
   get: jest.fn(),
   post: jest.fn(),
@@ -362,7 +368,7 @@ describe('granular hooks', () => {
         await result.current.getList();
       });
 
-      expect(store.getState().record).toEqual({
+      expect(toRecord(store)).toEqual({
         '1': mockUsers[0],
         '2': mockUsers[1],
         '3': mockUsers[2],
@@ -469,10 +475,10 @@ describe('granular hooks', () => {
       });
 
       store.getState().setList(mockUsers);
-      expect(store.getState().record).not.toBeNull();
+      expect(store.getState().data).not.toBeNull();
 
       store.getState().setList(null);
-      expect(store.getState().record).toBeNull();
+      expect(store.getState().data).toBeNull();
     });
 
     it('should reset from populated to null and back', () => {
@@ -483,13 +489,13 @@ describe('granular hooks', () => {
       });
 
       store.getState().setList(mockUsers);
-      expect(Object.keys(store.getState().record!)).toHaveLength(3);
+      expect(store.getState().data!.size).toBe(3);
 
       store.getState().setList(null);
-      expect(store.getState().record).toBeNull();
+      expect(store.getState().data).toBeNull();
 
       store.getState().setList([mockUsers[0]]);
-      expect(Object.keys(store.getState().record!)).toHaveLength(1);
+      expect(store.getState().data!.size).toBe(1);
     });
   });
 
@@ -740,6 +746,78 @@ describe('granular hooks', () => {
       act(() => { store.getState().updateInstance({ id: 1, name: 'Updated John', email: 'john@example.com' }); });
       expect(result.current.selected!.name).toBe('Updated John');
       expect(result.current.selectedId).toBe('1');
+    });
+  });
+
+  describe('insertion order preservation', () => {
+    it('should preserve insertion order for numeric keys', () => {
+      const store = getOrCreateStore('users-order-numeric', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { getList: true },
+      });
+
+      // Backend returns items sorted by name, but IDs are numeric
+      act(() => {
+        store.getState().setList([
+          { id: 10, name: 'Alice', email: 'alice@example.com' },
+          { id: 2, name: 'Bob', email: 'bob@example.com' },
+          { id: 5, name: 'Charlie', email: 'charlie@example.com' },
+        ]);
+      });
+
+      const { result } = renderHook(() => useList(store));
+      // Before Map: [{ id: 2 }, { id: 5 }, { id: 10 }] (numeric sort)
+      // After Map:  [{ id: 10 }, { id: 2 }, { id: 5 }] (insertion order)
+      expect(result.current!.map(i => i.id)).toEqual([10, 2, 5]);
+    });
+
+    it('should preserve order when updating existing items', () => {
+      const store = getOrCreateStore('users-order-update', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { getList: true },
+      });
+
+      act(() => {
+        store.getState().setList([
+          { id: 10, name: 'Alice', email: 'alice@example.com' },
+          { id: 2, name: 'Bob', email: 'bob@example.com' },
+          { id: 5, name: 'Charlie', email: 'charlie@example.com' },
+        ]);
+      });
+
+      // Update middle item — order should not change
+      act(() => {
+        store.getState().updateInstance({ id: 2, name: 'Bob Updated', email: 'bob@example.com' });
+      });
+
+      const { result } = renderHook(() => useList(store));
+      expect(result.current!.map(i => i.id)).toEqual([10, 2, 5]);
+      expect(result.current![1].name).toBe('Bob Updated');
+    });
+
+    it('should append new items at the end', () => {
+      const store = getOrCreateStore('users-order-append', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { getList: true },
+      });
+
+      act(() => {
+        store.getState().setList([
+          { id: 10, name: 'Alice', email: 'alice@example.com' },
+          { id: 2, name: 'Bob', email: 'bob@example.com' },
+        ]);
+      });
+
+      act(() => {
+        store.getState().setInstance({ id: 1, name: 'New First', email: 'first@example.com' });
+      });
+
+      const { result } = renderHook(() => useList(store));
+      // New item appended, not sorted to front
+      expect(result.current!.map(i => i.id)).toEqual([10, 2, 1]);
     });
   });
 

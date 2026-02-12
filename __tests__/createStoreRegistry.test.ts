@@ -1,6 +1,12 @@
 import { createStoreRegistry } from '../src/createStoreRegistry';
 import { TestUser, TestPost, mockUsers } from './testUtils';
 
+/** Convert Map-based store data to a plain record for assertions. */
+const toRecord = (store: any) => {
+  const d = store.getState().data;
+  return d ? Object.fromEntries(d) : null;
+};
+
 // Simple mock axios
 const mockAxios = {
   get: jest.fn(),
@@ -105,15 +111,14 @@ describe('createStoreRegistry', () => {
     const state = store.getState();
 
     // Initial state
-    expect(state.record).toBeNull();
+    expect(state.data).toBeNull();
 
     // Set list
     state.setList(mockUsers);
-    const newState = store.getState();
-    expect(newState.record).toEqual({
-      1: mockUsers[0],
-      2: mockUsers[1],
-      3: mockUsers[2],
+    expect(toRecord(store)).toEqual({
+      '1': mockUsers[0],
+      '2': mockUsers[1],
+      '3': mockUsers[2],
     });
   });
 
@@ -133,19 +138,16 @@ describe('createStoreRegistry', () => {
 
     // Set instance (add new)
     state.setInstance(newUser);
-    let currentState = store.getState();
-    expect(currentState.record).toEqual({ 4: newUser });
+    expect(toRecord(store)).toEqual({ '4': newUser });
 
     // Update instance
     const updatedUser = { ...newUser, name: 'Updated User' };
     state.updateInstance(updatedUser);
-    currentState = store.getState();
-    expect(currentState.record![4].name).toBe('Updated User');
+    expect(store.getState().data!.get('4')!.name).toBe('Updated User');
 
     // Delete instance
     state.deleteInstance(updatedUser);
-    currentState = store.getState();
-    expect(currentState.record).toEqual({});
+    expect(toRecord(store)).toEqual({});
   });
 
   it('should handle patch list correctly', () => {
@@ -170,12 +172,12 @@ describe('createStoreRegistry', () => {
       { id: 2, email: 'newemail@example.com' },
     ]);
 
-    const currentState = store.getState();
-    expect(currentState.record![1].name).toBe('Updated John');
-    expect(currentState.record![1].email).toBe('john@example.com'); // unchanged
-    expect(currentState.record![2].email).toBe('newemail@example.com');
-    expect(currentState.record![2].name).toBe('Jane Smith'); // unchanged
-    expect(currentState.record![3]).toEqual(mockUsers[2]); // unchanged
+    const data = store.getState().data!;
+    expect(data.get('1')!.name).toBe('Updated John');
+    expect(data.get('1')!.email).toBe('john@example.com'); // unchanged
+    expect(data.get('2')!.email).toBe('newemail@example.com');
+    expect(data.get('2')!.name).toBe('Jane Smith'); // unchanged
+    expect(data.get('3')).toEqual(mockUsers[2]); // unchanged
   });
 
   it('should handle update list correctly (upsert)', () => {
@@ -201,18 +203,18 @@ describe('createStoreRegistry', () => {
 
     state.updateList([updatedUser1, newUser4, newUser5]);
 
-    const currentState = store.getState();
+    const data = store.getState().data!;
 
     // Existing user should be replaced completely
-    expect(currentState.record![1]).toEqual(updatedUser1);
+    expect(data.get('1')).toEqual(updatedUser1);
 
     // Existing users not in updateList should remain unchanged
-    expect(currentState.record![2]).toEqual(mockUsers[1]);
-    expect(currentState.record![3]).toEqual(mockUsers[2]);
+    expect(data.get('2')).toEqual(mockUsers[1]);
+    expect(data.get('3')).toEqual(mockUsers[2]);
 
     // New users should be added
-    expect(currentState.record![4]).toEqual(newUser4);
-    expect(currentState.record![5]).toEqual(newUser5);
+    expect(data.get('4')).toEqual(newUser4);
+    expect(data.get('5')).toEqual(newUser5);
   });
 
   it('should handle update list with empty initial state', () => {
@@ -234,10 +236,8 @@ describe('createStoreRegistry', () => {
 
     state.updateList([newUser1, newUser2]);
 
-    const currentState = store.getState();
-
-    expect(currentState.record![1]).toEqual(newUser1);
-    expect(currentState.record![2]).toEqual(newUser2);
+    expect(store.getState().data!.get('1')).toEqual(newUser1);
+    expect(store.getState().data!.get('2')).toEqual(newUser2);
   });
 
   it('should handle custom state correctly', () => {

@@ -123,6 +123,7 @@ export type BaseConfig<T> = {
   route: Route;
   customActions?: CustomActions<T>;
   axios: AxiosInstance;
+  includeList?: boolean;
   includeRecord?: boolean;
   onError?: OnError;
   pagination?: true | PaginationInputConfig;
@@ -173,7 +174,8 @@ export type ValidatedConfig<K extends string, T, TConfig extends Config<K, T>> =
 
   customActions: ValidCustomActions<K, T, TConfig>;
   route: Route;
-  includeRecord: boolean
+  includeList: boolean;
+  includeRecord: boolean;
   select: 'single' | 'multiple' | null;
   pagination: PaginationConfig | null;
 }>
@@ -211,6 +213,7 @@ export const validateConfig = <
     route,
     customActions = {},
     onError = null,
+    includeList = false,
     includeRecord = false,
     pagination = null,
   } = config;
@@ -237,6 +240,7 @@ export const validateConfig = <
     state: (state || {}) as { [K in keyof C['state']]: C['state'][K] },
     axios: config.axios,
     onError,
+    includeList,
     includeRecord,
     actions: {
       ...actions.getList
@@ -341,6 +345,7 @@ export type ValidConfig<T> = {
     delete?: DeleteConfig<T>;
     }
   customActions?: CustomActions<T>;
+  includeList: boolean;
   includeRecord: boolean;
   route?: Route;
   select?: 'single' | 'multiple' | null;

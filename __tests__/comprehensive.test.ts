@@ -2,6 +2,12 @@ import { createStoreRegistry } from '../src/createStoreRegistry';
 import { validateConfig } from '../src/config';
 import { defaultLoadingState, getLoadingState, setLoadingState } from '../src/loadingState';
 
+/** Convert Map-based store data to a plain record for assertions. */
+const toRecord = (store: any) => {
+  const d = store.getState().data;
+  return d ? Object.fromEntries(d) : null;
+};
+
 // Mock axios for testing
 const mockAxios = {
   get: jest.fn(),
@@ -132,19 +138,18 @@ describe('Zustand CRUD Registry', () => {
 
     it('should handle initial state correctly', () => {
       const state = store.getState();
-      expect(state.record).toBeNull();
+      expect(state.data).toBeNull();
       expect(state.loadingState).toEqual({});
     });
 
     it('should set list correctly', () => {
       const state = store.getState();
       state.setList(mockUsers);
-      
-      const newState = store.getState();
-      expect(newState.record).toEqual({
-        1: mockUsers[0],
-        2: mockUsers[1],
-        3: mockUsers[2],
+
+      expect(toRecord(store)).toEqual({
+        '1': mockUsers[0],
+        '2': mockUsers[1],
+        '3': mockUsers[2],
       });
     });
 
@@ -153,9 +158,8 @@ describe('Zustand CRUD Registry', () => {
       const newUser: TestUser = { id: 4, name: 'New User', email: 'new@example.com' };
       
       state.setInstance(newUser);
-      
-      const newState = store.getState();
-      expect(newState.record).toEqual({ 4: newUser });
+
+      expect(toRecord(store)).toEqual({ '4': newUser });
     });
 
     it('should update instances correctly', () => {
@@ -167,10 +171,9 @@ describe('Zustand CRUD Registry', () => {
       // Then update it
       const updatedUser = { id: 1, name: 'Updated John', email: 'john@example.com' };
       state.updateInstance(updatedUser);
-      
-      const newState = store.getState();
-      expect(newState.record![1].name).toBe('Updated John');
-      expect(newState.record![1].email).toBe('john@example.com');
+
+      expect(store.getState().data!.get('1')!.name).toBe('Updated John');
+      expect(store.getState().data!.get('1')!.email).toBe('john@example.com');
     });
 
     it('should delete instances correctly', () => {
@@ -182,8 +185,7 @@ describe('Zustand CRUD Registry', () => {
       // Then delete one
       state.deleteInstance(mockUsers[0]);
       
-      const newState = store.getState();
-      expect(newState.record![1]).toBeUndefined();
+      expect(store.getState().data!.has('1')).toBe(false);
     });
 
     it('should patch list correctly', () => {
@@ -198,11 +200,11 @@ describe('Zustand CRUD Registry', () => {
         { id: 2, email: 'newemail@example.com' },
       ]);
 
-      const newState = store.getState();
-      expect(newState.record![1].name).toBe('Updated John');
-      expect(newState.record![1].email).toBe('john@example.com'); // unchanged
-      expect(newState.record![2].email).toBe('newemail@example.com');
-      expect(newState.record![2].name).toBe('Jane Smith'); // unchanged
+      const data = store.getState().data!;
+      expect(data.get('1')!.name).toBe('Updated John');
+      expect(data.get('1')!.email).toBe('john@example.com'); // unchanged
+      expect(data.get('2')!.email).toBe('newemail@example.com');
+      expect(data.get('2')!.name).toBe('Jane Smith'); // unchanged
     });
   });
 
@@ -445,9 +447,9 @@ describe('Zustand CRUD Registry', () => {
       postsState.setList([{ id: 1, title: 'Post 1', content: 'Content 1', userId: 1 }]);
 
       // Verify stores are independent
-      expect(usersStore.getState().record).not.toBe(postsStore.getState().record);
-      expect(Object.keys(usersStore.getState().record || {}).length).toBe(3);
-      expect(Object.keys(postsStore.getState().record || {}).length).toBe(1);
+      expect(usersStore.getState().data).not.toBe(postsStore.getState().data);
+      expect(usersStore.getState().data!.size).toBe(3);
+      expect(postsStore.getState().data!.size).toBe(1);
     });
   });
 

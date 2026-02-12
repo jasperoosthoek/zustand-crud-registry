@@ -47,6 +47,7 @@ describe('useCrud - Simple Coverage Tests', () => {
         axios: mockAxios,
         route: '/users',
         actions: { getList: true },
+        includeList: true,
       });
 
       const mockUsers = [{ id: 1, name: 'John', email: 'john@test.com' }];
@@ -147,6 +148,7 @@ describe('useCrud - Simple Coverage Tests', () => {
         axios: mockAxios,
         route: '/users',
         actions: { get: true },
+        includeList: true,
       });
 
       const mockUser = { id: 1, name: 'John', email: 'john@test.com' };
@@ -169,6 +171,7 @@ describe('useCrud - Simple Coverage Tests', () => {
         axios: mockAxios,
         route: '/users',
         actions: { create: true },
+        includeList: true,
       });
 
       const newUser = { name: 'New User', email: 'new@test.com' };
@@ -192,6 +195,7 @@ describe('useCrud - Simple Coverage Tests', () => {
         axios: mockAxios,
         route: '/users',
         actions: { update: true },
+        includeList: true,
       });
 
       // Set initial user
@@ -221,6 +225,7 @@ describe('useCrud - Simple Coverage Tests', () => {
         axios: mockAxios,
         route: '/users',
         actions: { delete: true },
+        includeList: true,
       });
 
       const userToDelete = { id: 1, name: 'To Delete', email: 'delete@test.com' };
@@ -251,6 +256,7 @@ describe('useCrud - Simple Coverage Tests', () => {
         axios: mockAxios,
         route: '/users',
         actions: { getList: true },
+        includeList: true,
       });
 
       const mockUsers = [{ id: 1, name: 'John', email: 'john@test.com' }];
@@ -277,6 +283,7 @@ describe('useCrud - Simple Coverage Tests', () => {
         axios: mockAxios,
         route: '/users',
         actions: { getList: true },
+        includeList: true,
       });
 
       const mockUsers = [

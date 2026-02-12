@@ -17,10 +17,6 @@ const plainStore = getOrCreatePlain("items", {
 
 const plain = useCrud(plainStore);
 
-// With mapped types + as-cast, optional config keys may leak.
-// The priority is Prettify flattening; strict exclusion is secondary.
-plain.list;
-
 // Pagination should not exist:
 // @ts-expect-error — no pagination configured
 plain.pagination;
@@ -80,12 +76,14 @@ const fullStore = getOrCreateFull("items", {
   route: "/items",
   actions: { getList: true },
   state: { filter: 'all' },
+  includeList: true,
   includeRecord: true,
   pagination: { limit: 10 },
   select: 'single' as const,
 });
 
 const full = useCrud(fullStore);
+full.list;
 full.pagination;
 full.setPagination({ offset: 10 });
 full.state;

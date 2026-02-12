@@ -43,15 +43,15 @@ export function useSelectBase<T, K extends string, C extends Config<K, T>>(
   const { byKey } = store.config;
   const selectMode = store.config.select;
 
-  const record = store((s) => s.record);
+  const data = store((s) => s.data);
   const selectedIds = store((s) => s.selectedIds);
 
   const instances = useMemo(() => {
-    if (!record || selectedIds.length === 0) return [];
+    if (!data || selectedIds.length === 0) return [];
     return selectedIds
-      .map((id: string) => record[id])
+      .map((id: string) => data.get(id))
       .filter(Boolean) as T[];
-  }, [record, selectedIds]);
+  }, [data, selectedIds]);
 
   const instance = instances[0] ?? null;
 

@@ -60,3 +60,7 @@
 - Prettify types and fix many broken compound types by replacing conditional with mapped types
 - Allow `store.setList(null)` to clear list
 - Select single and multiple instances implemented & new `useSelect` hook
+
+##### Upcoming: Version 0.2.1
+- Change internal storage element from `map` to `record` so `list` preserves original order as returned by api
+- Make `list` opt-in with `config.includeList` setting

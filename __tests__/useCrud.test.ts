@@ -51,7 +51,6 @@ describe('useCrud', () => {
     it('should return initial state correctly', () => {
       const { result } = renderHook(() => useCrud(store));
 
-      expect(result.current.list).toBeNull();
       expect(typeof result.current.getList).toBe('function');
       expect(typeof result.current.create).toBe('function');
       expect(typeof result.current.update).toBe('function');
@@ -70,21 +69,32 @@ describe('useCrud', () => {
       expect(result.current.get.isLoading).toBe(false);
     });
 
-    it('should reflect store changes in list', () => {
+    it('should reflect store changes in list when includeList is true', () => {
       const mockUsers = [
         { id: 1, name: 'John Doe', email: 'john@example.com' },
         { id: 2, name: 'Jane Smith', email: 'jane@example.com' },
       ];
 
-      const { result } = renderHook(() => useCrud(store));
+      const storeWithList = getOrCreateStore('usersWithList', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { getList: true },
+        includeList: true,
+      });
 
-      // Update store directly
+      const { result } = renderHook(() => useCrud(storeWithList));
+      expect(result.current.list).toBeNull();
+
       act(() => {
-        const state = store.getState();
-        state.setList(mockUsers);
+        storeWithList.getState().setList(mockUsers);
       });
 
       expect(result.current.list).toEqual(mockUsers);
+    });
+
+    it('should not include list when includeList is not configured', () => {
+      const { result } = renderHook(() => useCrud(store));
+      expect((result.current as any).list).toBeUndefined();
     });
   });
 
