@@ -59,3 +59,4 @@
 - Action functions are now referentially stable with loading state properties mutated in place on each render.
 - Prettify types and fix many broken compound types by replacing conditional with mapped types
 - Allow `store.setList(null)` to clear list
+- "Select single and multiple instances implemented & new `useSelected` hook"

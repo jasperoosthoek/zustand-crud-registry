@@ -628,4 +628,99 @@ describe('useCrud', () => {
       expect(storeWithErrorHandler.config.onError).toBe(mockOnError);
     });
   });
+
+  describe('select', () => {
+    const mockUsers = [
+      { id: 1, name: 'John Doe', email: 'john@example.com' },
+      { id: 2, name: 'Jane Smith', email: 'jane@example.com' },
+      { id: 3, name: 'Bob Wilson', email: 'bob@example.com' },
+    ];
+
+    it('should expose select fields when select: single is configured', () => {
+      const selectStore = getOrCreateStore('usersSingleSelect', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { getList: true },
+        select: 'single',
+      });
+
+      const { result } = renderHook(() => useCrud(selectStore));
+
+      expect(result.current.selected).toEqual([]);
+      expect(result.current.selectedItem).toBeNull();
+      expect(result.current.selectedIds).toEqual([]);
+      expect(typeof result.current.select).toBe('function');
+      expect(typeof result.current.toggle).toBe('function');
+      expect(typeof result.current.clear).toBe('function');
+    });
+
+    it('should expose select fields when select: multiple is configured', () => {
+      const selectStore = getOrCreateStore('usersMultipleSelect', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { getList: true },
+        select: 'multiple',
+      });
+
+      const { result } = renderHook(() => useCrud(selectStore));
+
+      expect(result.current.selected).toEqual([]);
+      expect(typeof result.current.toggle).toBe('function');
+    });
+
+    it('should NOT expose select fields when select is omitted', () => {
+      const { result } = renderHook(() => useCrud(store));
+
+      expect((result.current as any).selected).toBeUndefined();
+      expect((result.current as any).selectedItem).toBeUndefined();
+      expect((result.current as any).toggle).toBeUndefined();
+      expect((result.current as any).clear).toBeUndefined();
+    });
+
+    it('should work: single select via useCrud', () => {
+      const selectStore = getOrCreateStore('usersSingleSelectWork', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { getList: true },
+        select: 'single',
+      });
+
+      act(() => { selectStore.getState().setList(mockUsers); });
+
+      const { result } = renderHook(() => useCrud(selectStore));
+
+      act(() => { result.current.select(mockUsers[0]); });
+      expect(result.current.selectedItem).toEqual(mockUsers[0]);
+      expect(result.current.selectedIds).toEqual(['1']);
+
+      act(() => { result.current.toggle(mockUsers[0]); });
+      expect(result.current.selectedItem).toBeNull();
+
+      act(() => { result.current.clear(); });
+      expect(result.current.selectedIds).toEqual([]);
+    });
+
+    it('should work: multiple select via useCrud', () => {
+      const selectStore = getOrCreateStore('usersMultipleSelectWork', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { getList: true },
+        select: 'multiple',
+      });
+
+      act(() => { selectStore.getState().setList(mockUsers); });
+
+      const { result } = renderHook(() => useCrud(selectStore));
+
+      act(() => { result.current.toggle(mockUsers[0]); });
+      act(() => { result.current.toggle(mockUsers[2]); });
+      expect(result.current.selected).toEqual([mockUsers[0], mockUsers[2]]);
+
+      act(() => { result.current.toggle(mockUsers[0]); });
+      expect(result.current.selected).toEqual([mockUsers[2]]);
+
+      act(() => { result.current.clear(); });
+      expect(result.current.selected).toEqual([]);
+    });
+  });
 });

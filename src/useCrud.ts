@@ -2,6 +2,7 @@ import { useList } from "./useList";
 import { useActions } from "./useActions";
 import { usePagination } from "./usePagination";
 import { useCrudState } from "./useCrudState";
+import { useSelect } from "./useSelect";
 
 import type { CrudStore } from "./createStoreRegistry";
 import type { Config, ValidatedConfig, ValidConfig, Pagination, Prettify } from "./config"
@@ -35,6 +36,21 @@ type RecordFields<T, C> = {
   [K in Extract<keyof C, 'includeRecord'> as 'record']: { [key: string]: T } | null;
 };
 
+// When C has 'select' as a key → 6 select fields. When not → {}
+type SelectFields<T, C> = {
+  [K in Extract<keyof C, 'select'> as 'selected']: T[];
+} & {
+  [K in Extract<keyof C, 'select'> as 'selectedItem']: T | null;
+} & {
+  [K in Extract<keyof C, 'select'> as 'selectedIds']: string[];
+} & {
+  [K in Extract<keyof C, 'select'> as 'select']: (instanceOrId: T | string | number | null) => void;
+} & {
+  [K in Extract<keyof C, 'select'> as 'toggle']: (instanceOrId: T | string | number) => void;
+} & {
+  [K in Extract<keyof C, 'select'> as 'clear']: () => void;
+};
+
 export function useCrud<
   T,
   K extends string,
@@ -57,6 +73,9 @@ export function useCrud<
 
   const record = store.config.includeRecord && store((s) => s.record);
 
+  const { select: selectConfig } = store.config;
+  const sel = selectConfig && useSelect(store);
+
   type V = ValidatedConfig<K, T, C>;
   type S = C['state'];
 
@@ -69,6 +88,16 @@ export function useCrud<
     ...customState
       ? { state: customState.state, setState: customState.setState }
       : {},
+    ...sel
+      ? {
+          selected: sel.selected,
+          selectedItem: sel.selectedItem,
+          selectedIds: sel.selectedIds,
+          select: sel.select,
+          toggle: sel.toggle,
+          clear: sel.clear,
+        }
+      : {},
     ...actions,
   } as Prettify<
     { list: T[] | null }
@@ -77,6 +106,7 @@ export function useCrud<
     & StateFields<C, S>
     & CustomActionFunctions<T, V>
     & RecordFields<T, C>
+    & SelectFields<T, C>
   >
 
   return output;

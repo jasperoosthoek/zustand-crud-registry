@@ -111,7 +111,6 @@ export type Actions<T> = {
   create?: boolean | Partial<CreateConfig<T>>;
   update?: boolean | Partial<UpdateConfig<T>>;
   delete?: boolean | Partial<DeleteConfig<T>>;
-  select?: false | 'single' | 'multiple';
 }
 
 
@@ -127,6 +126,7 @@ export type BaseConfig<T> = {
   includeRecord?: boolean;
   onError?: OnError;
   pagination?: true | PaginationInputConfig;
+  select?: 'single' | 'multiple';
 };
 
 export interface Config<K extends string, T> extends BaseConfig<T> {}
@@ -174,8 +174,7 @@ export type ValidatedConfig<K extends string, T, TConfig extends Config<K, T>> =
   customActions: ValidCustomActions<K, T, TConfig>;
   route: Route;
   includeRecord: boolean
-  // selectedId?: string,
-  // selectedIds?: string,
+  select: 'single' | 'multiple' | null;
   pagination: PaginationConfig | null;
 }>
 
@@ -224,7 +223,6 @@ export const validateConfig = <
         create: true,
         update: true,
         delete: true,
-        select: false,
       }
     : {
       ...config.actions ? config.actions : {},
@@ -300,16 +298,8 @@ export const validateConfig = <
             ...typeof actions.delete === 'object' ? actions.delete : {},
           } as DeleteConfig<T>}
         : {},
-      ...!actions.select
-        ? { select: false }
-        : actions.select === 'multiple'
-          ? {
-              select: 'multiple',
-            }
-          : {
-              select: 'single',
-            },
     },
+    select: config.select || null,
     customActions: Object.entries(customActions as CustomActions<T>)
       .reduce(
         (o, [key, action]) => {
@@ -349,12 +339,10 @@ export type ValidConfig<T> = {
     create?: CreateConfig<T>;
     update?: UpdateConfig<T>;
     delete?: DeleteConfig<T>;
-    // select: false | 'single' | 'multiple';
     }
   customActions?: CustomActions<T>;
   includeRecord: boolean;
   route?: Route;
-  // selectedId?: string,
-  // selectedIds?: string,
+  select?: 'single' | 'multiple' | null;
   pagination: PaginationConfig | null;
 };

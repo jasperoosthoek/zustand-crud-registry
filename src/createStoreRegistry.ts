@@ -21,6 +21,8 @@ export type CrudState<T, S> = {
   setState: (subState: Partial<S>) => void;
   pagination: Pagination | null;
   setPagination: (partial: Partial<Pagination>) => void;
+  selectedIds: string[];
+  setSelectedIds: (ids: string[]) => void;
 };
 
 export type CrudStore<
@@ -53,7 +55,7 @@ export function createStoreRegistry<Models extends Record<string, any>>() {
       const store: CrudStore<Models[K], K, C, typeof validated> = Object.assign(
         create<CrudState<Models[K], C['state']>>((set) => ({
           record: null,
-          setList: (list) => set({ record: list ? Object.fromEntries(list.map((item) => [(item as any)[byKey], item])) : null }),
+          setList: (list) => set({ record: list ? Object.fromEntries(list.map((item) => [(item as any)[byKey], item])) : null, selectedIds: [] }),
           patchList: (list: Partial<Models[K]>[]) =>
             set((state) => {
               if (!state.record) return {};
@@ -118,16 +120,16 @@ export function createStoreRegistry<Models extends Record<string, any>>() {
             set((state) => {
               if (!state.record) return {};
 
-              const newList = { ...state.record };
-              if (newList[(instance as any)[byKey as string]]) {
-                delete newList[(instance as any)[byKey as string]];
-              }
+              const id = String((instance as any)[byKey]);
+              const newRecord = { ...state.record };
+              if (newRecord[id]) { delete newRecord[id]; }
 
               return {
-                record: newList,
+                record: newRecord,
                 ...state.pagination
                   ? { pagination: { ...state.pagination, count: Math.max(0, state.pagination.count - 1) } }
                   : {},
+                selectedIds: state.selectedIds.filter((i) => i !== id),
               };
             }),
           loadingState: {},
@@ -160,6 +162,8 @@ export function createStoreRegistry<Models extends Record<string, any>>() {
                 ? { ...state.pagination, ...partial }
                 : null,
             })),
+          selectedIds: [] as string[],
+          setSelectedIds: (ids: string[]) => set({ selectedIds: ids }),
         })),
         { key, config: validated } 
       );

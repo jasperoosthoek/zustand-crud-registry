@@ -6,4 +6,5 @@ export * from './useRecord';
 export * from './useActions';
 export * from './usePagination';
 export * from './useCrudState';
+export * from './useSelect';
 export * from './useCrud';

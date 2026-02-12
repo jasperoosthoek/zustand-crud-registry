@@ -5,6 +5,7 @@ import { useInstance } from '../src/useRecord';
 import { useActions } from '../src/useActions';
 import { usePagination } from '../src/usePagination';
 import { useCrudState } from '../src/useCrudState';
+import { useSelect } from '../src/useSelect';
 import { renderHook, act } from '@testing-library/react';
 
 const mockAxios = {
@@ -489,6 +490,287 @@ describe('granular hooks', () => {
 
       store.getState().setList([mockUsers[0]]);
       expect(Object.keys(store.getState().record!)).toHaveLength(1);
+    });
+  });
+
+  describe('setList clears selectedIds', () => {
+    it('should clear selectedIds when setList is called with data', () => {
+      const store = getOrCreateStore('users-setlist-clears-select', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { getList: true },
+        select: 'single',
+      });
+
+      store.getState().setList(mockUsers);
+      store.getState().setSelectedIds(['1', '2']);
+      expect(store.getState().selectedIds).toEqual(['1', '2']);
+
+      store.getState().setList(mockUsers);
+      expect(store.getState().selectedIds).toEqual([]);
+    });
+
+    it('should clear selectedIds when setList(null) is called', () => {
+      const store = getOrCreateStore('users-setlist-null-clears-select', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { getList: true },
+        select: 'multiple',
+      });
+
+      store.getState().setList(mockUsers);
+      store.getState().setSelectedIds(['1']);
+      expect(store.getState().selectedIds).toEqual(['1']);
+
+      store.getState().setList(null);
+      expect(store.getState().selectedIds).toEqual([]);
+    });
+  });
+
+  describe('useSelect', () => {
+    it('should return empty selection initially', () => {
+      const store = getOrCreateStore('users-select-init', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { getList: true },
+        select: 'single',
+      });
+
+      const { result } = renderHook(() => useSelect(store));
+      expect(result.current.selected).toEqual([]);
+      expect(result.current.selectedItem).toBeNull();
+      expect(result.current.selectedIds).toEqual([]);
+    });
+
+    it('should select by instance', () => {
+      const store = getOrCreateStore('users-select-instance', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { getList: true },
+        select: 'single',
+      });
+
+      act(() => { store.getState().setList(mockUsers); });
+
+      const { result } = renderHook(() => useSelect(store));
+
+      act(() => { result.current.select(mockUsers[0]); });
+      expect(result.current.selectedIds).toEqual(['1']);
+      expect(result.current.selectedItem).toEqual(mockUsers[0]);
+    });
+
+    it('should select by raw number id', () => {
+      const store = getOrCreateStore('users-select-num-id', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { getList: true },
+        select: 'single',
+      });
+
+      act(() => { store.getState().setList(mockUsers); });
+
+      const { result } = renderHook(() => useSelect(store));
+
+      act(() => { result.current.select(2); });
+      expect(result.current.selectedIds).toEqual(['2']);
+      expect(result.current.selectedItem).toEqual(mockUsers[1]);
+    });
+
+    it('should select by raw string id', () => {
+      const store = getOrCreateStore('users-select-str-id', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { getList: true },
+        select: 'single',
+      });
+
+      act(() => { store.getState().setList(mockUsers); });
+
+      const { result } = renderHook(() => useSelect(store));
+
+      act(() => { result.current.select('3'); });
+      expect(result.current.selectedIds).toEqual(['3']);
+      expect(result.current.selectedItem).toEqual(mockUsers[2]);
+    });
+
+    it('should deselect with select(null)', () => {
+      const store = getOrCreateStore('users-select-null', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { getList: true },
+        select: 'single',
+      });
+
+      act(() => { store.getState().setList(mockUsers); });
+
+      const { result } = renderHook(() => useSelect(store));
+
+      act(() => { result.current.select(mockUsers[0]); });
+      expect(result.current.selectedItem).not.toBeNull();
+
+      act(() => { result.current.select(null); });
+      expect(result.current.selectedItem).toBeNull();
+      expect(result.current.selectedIds).toEqual([]);
+    });
+
+    it('should toggle in single mode: replace selection', () => {
+      const store = getOrCreateStore('users-toggle-single', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { getList: true },
+        select: 'single',
+      });
+
+      act(() => { store.getState().setList(mockUsers); });
+
+      const { result } = renderHook(() => useSelect(store));
+
+      // Toggle on
+      act(() => { result.current.toggle(mockUsers[0]); });
+      expect(result.current.selectedIds).toEqual(['1']);
+
+      // Toggle same → off
+      act(() => { result.current.toggle(mockUsers[0]); });
+      expect(result.current.selectedIds).toEqual([]);
+
+      // Toggle on, then toggle different → replaces
+      act(() => { result.current.toggle(mockUsers[0]); });
+      act(() => { result.current.toggle(mockUsers[1]); });
+      expect(result.current.selectedIds).toEqual(['2']);
+    });
+
+    it('should toggle in multiple mode: add/remove', () => {
+      const store = getOrCreateStore('users-toggle-multiple', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { getList: true },
+        select: 'multiple',
+      });
+
+      act(() => { store.getState().setList(mockUsers); });
+
+      const { result } = renderHook(() => useSelect(store));
+
+      act(() => { result.current.toggle(mockUsers[0]); });
+      act(() => { result.current.toggle(mockUsers[1]); });
+      expect(result.current.selectedIds).toEqual(['1', '2']);
+      expect(result.current.selected).toEqual([mockUsers[0], mockUsers[1]]);
+
+      // Toggle off
+      act(() => { result.current.toggle(mockUsers[0]); });
+      expect(result.current.selectedIds).toEqual(['2']);
+    });
+
+    it('should clear selection', () => {
+      const store = getOrCreateStore('users-select-clear', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { getList: true },
+        select: 'multiple',
+      });
+
+      act(() => { store.getState().setList(mockUsers); });
+
+      const { result } = renderHook(() => useSelect(store));
+
+      act(() => { result.current.toggle(mockUsers[0]); });
+      act(() => { result.current.toggle(mockUsers[1]); });
+      expect(result.current.selectedIds).toHaveLength(2);
+
+      act(() => { result.current.clear(); });
+      expect(result.current.selectedIds).toEqual([]);
+      expect(result.current.selected).toEqual([]);
+    });
+
+    it('should derive instances from record', () => {
+      const store = getOrCreateStore('users-select-derive', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { getList: true },
+        select: 'multiple',
+      });
+
+      act(() => { store.getState().setList(mockUsers); });
+
+      const { result } = renderHook(() => useSelect(store));
+
+      act(() => { store.getState().setSelectedIds(['1', '3']); });
+      expect(result.current.selected).toEqual([mockUsers[0], mockUsers[2]]);
+    });
+
+    it('should filter out deleted instances from selected', () => {
+      const store = getOrCreateStore('users-select-filter-deleted', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { getList: true },
+        select: 'multiple',
+      });
+
+      act(() => { store.getState().setList(mockUsers); });
+
+      const { result } = renderHook(() => useSelect(store));
+
+      act(() => { store.getState().setSelectedIds(['1', '2', '3']); });
+      expect(result.current.selected).toHaveLength(3);
+
+      // deleteInstance also cleans up selectedIds (Step 4),
+      // but let's also verify derived selected handles stale ids
+      // by manually setting a stale id
+      act(() => { store.getState().setSelectedIds(['1', '999', '3']); });
+      expect(result.current.selected).toEqual([mockUsers[0], mockUsers[2]]);
+      expect(result.current.selectedIds).toEqual(['1', '999', '3']);
+    });
+
+    it('should update selected when record changes', () => {
+      const store = getOrCreateStore('users-select-record-change', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { getList: true },
+        select: 'single',
+      });
+
+      act(() => { store.getState().setList(mockUsers); });
+
+      const { result } = renderHook(() => useSelect(store));
+
+      act(() => { result.current.select(1); });
+      expect(result.current.selectedItem).toEqual(mockUsers[0]);
+
+      // Update the selected instance
+      act(() => { store.getState().updateInstance({ id: 1, name: 'Updated John', email: 'john@example.com' }); });
+      expect(result.current.selectedItem!.name).toBe('Updated John');
+    });
+  });
+
+  describe('deleteInstance cleans up selectedIds', () => {
+    it('should remove deleted id from selectedIds', () => {
+      const store = getOrCreateStore('users-delete-cleans-select', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { getList: true },
+        select: 'multiple',
+      });
+
+      store.getState().setList(mockUsers);
+      store.getState().setSelectedIds(['1', '2', '3']);
+
+      store.getState().deleteInstance({ id: 2 } as any);
+      expect(store.getState().selectedIds).toEqual(['1', '3']);
+    });
+
+    it('should not affect selectedIds when deleting a non-selected instance', () => {
+      const store = getOrCreateStore('users-delete-nonselected', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { getList: true },
+        select: 'single',
+      });
+
+      store.getState().setList(mockUsers);
+      store.getState().setSelectedIds(['1']);
+
+      store.getState().deleteInstance({ id: 3 } as any);
+      expect(store.getState().selectedIds).toEqual(['1']);
     });
   });
 });
