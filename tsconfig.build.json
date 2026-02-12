@@ -19,6 +19,7 @@
     "src/useActions.ts",
     "src/usePagination.ts",
     "src/useCrudState.ts",
+    "src/useSelectBase.ts",
     "src/useSelect.ts",
     "src/useCrud.ts"
   ],

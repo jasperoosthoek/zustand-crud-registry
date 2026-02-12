@@ -33,6 +33,7 @@ export type CrudStore<
 > = UseBoundStore<StoreApi<CrudState<T, Config<K, T>['state']>>> & {
   key: K;
   config: V;
+  rawConfig: C;
 };
 
 export function createStoreRegistry<Models extends Record<string, any>>() {
@@ -165,7 +166,7 @@ export function createStoreRegistry<Models extends Record<string, any>>() {
           selectedIds: [] as string[],
           setSelectedIds: (ids: string[]) => set({ selectedIds: ids }),
         })),
-        { key, config: validated } 
+        { key, config: validated, rawConfig: rawConfig }
       );
       
       storeRegistry[key] = store;

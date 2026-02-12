@@ -646,11 +646,14 @@ describe('useCrud', () => {
 
       const { result } = renderHook(() => useCrud(selectStore));
 
-      expect(result.current.selectedItem).toBeNull();
-      expect(result.current.selectedIds).toEqual([]);
+      expect(result.current.selected.instance).toBeNull();
+      expect(result.current.selected.id).toBeNull();
       expect(typeof result.current.select).toBe('function');
       expect(typeof result.current.toggle).toBe('function');
       expect(typeof result.current.clear).toBe('function');
+      // instances/ids are NOT on single-select's selected object
+      expect((result.current.selected as any).instances).toBeUndefined();
+      expect((result.current.selected as any).ids).toBeUndefined();
     });
 
     it('should expose select fields when select: multiple is configured', () => {
@@ -663,30 +666,34 @@ describe('useCrud', () => {
 
       const { result } = renderHook(() => useCrud(selectStore));
 
-      expect(result.current.selectedIds).toEqual([]);
+      expect(result.current.selected.ids).toEqual([]);
       expect(typeof result.current.toggle).toBe('function');
     });
 
     it('should NOT expose select fields when select is omitted', () => {
       const { result } = renderHook(() => useCrud(store));
 
-      expect((result.current as any).selectedItem).toBeUndefined();
-      expect((result.current as any).selectedItems).toBeUndefined();
+      expect((result.current as any).selected).toBeUndefined();
+      expect((result.current as any).select).toBeUndefined();
       expect((result.current as any).toggle).toBeUndefined();
       expect((result.current as any).clear).toBeUndefined();
     });
 
-    it('should NOT expose selectedItems (only available via useSelect)', () => {
-      const selectStore = getOrCreateStore('usersNoSelectedItems', {
+    it('should expose selected.instances when select is configured', () => {
+      const selectStore = getOrCreateStore('usersWithSelectedItems', {
         axios: mockAxios,
         route: '/users',
         actions: { getList: true },
         select: 'multiple',
       });
 
+      act(() => { selectStore.getState().setList(mockUsers); });
+
       const { result } = renderHook(() => useCrud(selectStore));
 
-      expect((result.current as any).selectedItems).toBeUndefined();
+      act(() => { result.current.toggle(mockUsers[0]); });
+      act(() => { result.current.toggle(mockUsers[2]); });
+      expect(result.current.selected.instances).toEqual([mockUsers[0], mockUsers[2]]);
     });
 
     it('should work: single select via useCrud', () => {
@@ -702,14 +709,15 @@ describe('useCrud', () => {
       const { result } = renderHook(() => useCrud(selectStore));
 
       act(() => { result.current.select(mockUsers[0]); });
-      expect(result.current.selectedItem).toEqual(mockUsers[0]);
-      expect(result.current.selectedIds).toEqual(['1']);
+      expect(result.current.selected.instance).toEqual(mockUsers[0]);
+      expect(result.current.selected.id).toBe('1');
 
       act(() => { result.current.toggle(mockUsers[0]); });
-      expect(result.current.selectedItem).toBeNull();
+      expect(result.current.selected.instance).toBeNull();
+      expect(result.current.selected.id).toBeNull();
 
       act(() => { result.current.clear(); });
-      expect(result.current.selectedIds).toEqual([]);
+      expect(result.current.selected.id).toBeNull();
     });
 
     it('should work: multiple select via useCrud', () => {
@@ -726,13 +734,13 @@ describe('useCrud', () => {
 
       act(() => { result.current.toggle(mockUsers[0]); });
       act(() => { result.current.toggle(mockUsers[2]); });
-      expect(result.current.selectedIds).toEqual(['1', '3']);
+      expect(result.current.selected.ids).toEqual(['1', '3']);
 
       act(() => { result.current.toggle(mockUsers[0]); });
-      expect(result.current.selectedIds).toEqual(['3']);
+      expect(result.current.selected.ids).toEqual(['3']);
 
       act(() => { result.current.clear(); });
-      expect(result.current.selectedIds).toEqual([]);
+      expect(result.current.selected.ids).toEqual([]);
     });
   });
 });
