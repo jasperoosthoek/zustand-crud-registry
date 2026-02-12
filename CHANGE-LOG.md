@@ -53,10 +53,10 @@
 ##### Version 0.1.1
 - Make all fields in `config.pagination` optional
 
-##### Upcoming
-- Make subcribing to `pagination`
+##### Version 0.2.0
+- Make subcribing to `pagination` optional
 - Remove `useStore` hook which leads to unnecessary renders
 - Action functions are now referentially stable with loading state properties mutated in place on each render.
 - Prettify types and fix many broken compound types by replacing conditional with mapped types
 - Allow `store.setList(null)` to clear list
-- "Select single and multiple instances implemented & new `useSelected` hook"
+- Select single and multiple instances implemented & new `useSelect` hook
