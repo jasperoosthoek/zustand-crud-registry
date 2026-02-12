@@ -17,7 +17,7 @@ Transform your React frontend into a powerful data management interface with jus
 - **Built-in Loading States** - No more manual loading/error state management
 - **Zero Boilerplate** - Set up complete CRUD operations in minutes
 - **Flexible Configuration** - Custom actions, routes, and data transformation
-- **Normalized Storage** - Efficient data storage and updates
+- **Ordered Storage** - Map-based storage preserves backend insertion order
 - **React Hooks** - Clean, composable API for your components
 
 ## Quick Start
@@ -68,6 +68,7 @@ export const usersStore = getOrCreateStore('users', {
     update: true,
     delete: true,
   },
+  includeList: true,       // Include list in useCrud return
 });
 
 export const postsStore = getOrCreateStore('posts', {
@@ -79,6 +80,7 @@ export const postsStore = getOrCreateStore('posts', {
     update: true,
     delete: true,
   },
+  includeList: true,
 });
 ```
 
@@ -191,6 +193,7 @@ export const tasksStore = getOrCreateStore('tasks', {
       method: 'post',
     },
   },
+  includeList: true,
   // Component state (separate from server data)
   state: {
     selectedTaskId: null as number | null,
@@ -265,17 +268,15 @@ export const TaskManager = () => {
 
 ```typescript
 // hooks/useTasksWithReorder.ts
-import { useCrud, useStore } from "@jasperoosthoek/zustand-crud-registry";
+import { useCrud } from "@jasperoosthoek/zustand-crud-registry";
 import { tasksStore } from '../stores/advanced';
 
 export const useTasksWithReorder = () => {
   const tasks = useCrud(tasksStore);
-  const { patchList } = useStore(tasksStore);
 
-  // Handle reorder response
+  // Handle reorder response — update only the order fields without refetching
   tasks.reorder.onResponse = (reorderedTasks: Partial<Task>[]) => {
-    // Update only the order fields without refetching
-    patchList(reorderedTasks);
+    tasksStore.getState().patchList(reorderedTasks);
   };
 
   return tasks;
@@ -319,7 +320,10 @@ Creates or retrieves a store for a specific entity type.
   state?: object;                 // Component state
   onError?: (error: any) => void; // Error handler
   id?: string;                    // ID field name (default: 'id')
-  includeRecord?: boolean;        // Include record object in hook
+  includeList?: boolean;          // Include list array in useCrud return
+  includeRecord?: boolean;        // Include record object in useCrud return
+  pagination?: true | PaginationConfig; // Enable pagination
+  select?: 'single' | 'multiple';      // Enable selection
 }
 ```
 
@@ -330,10 +334,9 @@ Main hook for interacting with your store.
 **Returns:**
 ```typescript
 {
-  list: T[] | null;                    // Array of entities or null when no entities have been stored yet
-  count: number;                       // Total count which will differ in case of pagination
-
-  record?: {[id: string]: T} | null;    // Object of entities by id of how data is stored internally (if enabled)
+  // Data views (opt-in via config)
+  list?: T[] | null;                   // Array of entities (if includeList: true)
+  record?: {[id: string]: T} | null;   // Keyed object of entities (if includeRecord: true)
 
   // CRUD operations (if enabled)
   getList: AsyncFunction;
@@ -341,34 +344,47 @@ Main hook for interacting with your store.
   create: AsyncFunction;
   update: AsyncFunction;
   delete: AsyncFunction;
-  
+
   // Custom actions
   [customAction]: AsyncFunction;
-  
+
   // State management (if configured)
   state: StateObject;
   setState: (partial: Partial<StateObject>) => void;
-  
+
+  // Pagination (if configured)
+  pagination: { count: number; offset: number; limit: number };
+  setPagination: (partial: Partial<Pagination>) => void;
+
+  // Selection (if configured)
+  selected: T | null;                  // if select: 'single'
+  selected: T[];                       // if select: 'multiple'
+  select: (instanceOrId: T | string | number | null) => void;
+  toggle: (instanceOrId: T | string | number) => void;
+  clear: () => void;
+
   // Loading states for each operation
   // Each operation has: isLoading, error, response, id
 }
 ```
 
-### `useStore(store)`
+### Granular Hooks
 
-Lower-level hook providing direct access to store functions.
+For more control, use the standalone hooks instead of `useCrud`:
 
-**Returns:** Complete store state and functions
+- `useList(store)` - Returns `T[] | null` (ordered array)
+- `useRecord(store)` - Returns `{ [key: string]: T } | null` (keyed object)
+- `useInstance(store, id)` - Returns `T | null` (single item by id)
+- `useSelect(store)` - Returns selection state with `selectedId`/`selectedIds`
 
 ### Store State Functions
 
-The store provides direct state manipulation functions for advanced use cases:
+The store provides direct state manipulation functions via `store.getState()`:
 
 **List Operations:**
-- `setList(items: T[])` - Replaces the entire record with new items
+- `setList(items: T[] | null)` - Replaces all data (or clears with `null`)
 - `patchList(items: Partial<T>[])` - Updates existing items only (ignores new items)
 - `updateList(items: T[])` - Upserts items (updates existing, inserts new)
-- `setCount(count: number)` - Sets the total count manually
 
 **Single Item Operations:**
 - `setInstance(item: T)` - Adds or replaces a single item
@@ -473,16 +489,19 @@ export const usersStore = getOrCreateStore('users', {
 
 ```typescript
 // hooks/useUsers.ts - Wrap logic in custom hooks
+import { useList } from "@jasperoosthoek/zustand-crud-registry";
+
 export const useUsers = () => {
   const users = useCrud(usersStore);
-  
+  const list = useList(usersStore);
+
   useEffect(() => {
-    if (!users.list) {
+    if (!list) {
       users.getList();
     }
   }, []);
-  
-  return users;
+
+  return { ...users, list };
 };
 ```
 
