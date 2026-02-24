@@ -9,7 +9,10 @@
   ],
   "include": [
     "src/**/*",
-    "__tests__/types.probe.ts"
+    "__tests__/types.probe.ts",
+    "__tests__/types.config.probe.ts",
+    "__tests__/types.actions.probe.ts",
+    "__tests__/types.store.probe.ts"
   ],
   "compilerOptions": {
     "outDir": "./dist/",
