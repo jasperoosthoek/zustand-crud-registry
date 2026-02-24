@@ -16,6 +16,8 @@
     "src/loadingState.ts",
     "src/useList.ts",
     "src/useRecord.ts",
+    "src/useGet.ts",
+    "src/useGetList.ts",
     "src/useActions.ts",
     "src/usePagination.ts",
     "src/useCrudState.ts",

@@ -61,6 +61,13 @@
 - Allow `store.setList(null)` to clear list
 - Select single and multiple instances implemented & new `useSelect` hook
 
-##### Upcoming: Version 0.2.1
+##### Version 0.2.1
 - Change internal storage element from `map` to `record` so `list` preserves original order as returned by api
 - Make `list` opt-in with `config.includeList` setting
+
+##### Upcoming
+- New `useGet(store, id?)` hook — subscribes to a single instance and auto-fetches on mount. Returns `[instance, get]` tuple
+- New `useGetList(store)` hook — subscribes to list and auto-fetches on mount. Returns `[data, getList]` tuple
+- Remove `useInstance` (replaced by `useGet`)
+- `useCrud` no longer uses conditional hook calls internally
+- `useCrud(store, id?)` accepts optional `id` — returns `instance: T | null` with auto-fetch via existing `get` action

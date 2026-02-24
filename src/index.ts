@@ -3,6 +3,8 @@ export * from './createStoreRegistry';
 export * from './loadingState';
 export * from './useList';
 export * from './useRecord';
+export * from './useGet';
+export * from './useGetList';
 export * from './useActions';
 export * from './usePagination';
 export * from './useCrudState';

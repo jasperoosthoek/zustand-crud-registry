@@ -374,7 +374,6 @@ For more control, use the standalone hooks instead of `useCrud`:
 
 - `useList(store)` - Returns `T[] | null` (ordered array)
 - `useRecord(store)` - Returns `{ [key: string]: T } | null` (keyed object)
-- `useInstance(store, id)` - Returns `T | null` (single item by id)
 - `useSelect(store)` - Returns selection state with `selectedId`/`selectedIds`
 
 ### Store State Functions

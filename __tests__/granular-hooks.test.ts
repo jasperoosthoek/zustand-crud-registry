@@ -1,11 +1,13 @@
 import { createStoreRegistry } from '../src/createStoreRegistry';
 import { useList } from '../src/useList';
 import { useRecord } from '../src/useRecord';
-import { useInstance } from '../src/useRecord';
 import { useActions } from '../src/useActions';
 import { usePagination } from '../src/usePagination';
 import { useCrudState } from '../src/useCrudState';
 import { useSelect } from '../src/useSelect';
+import { useGet } from '../src/useGet';
+import { useGetList } from '../src/useGetList';
+import { useCrud } from '../src/useCrud';
 import { renderHook, act } from '@testing-library/react';
 
 /** Convert Map-based store data to a plain record for assertions. */
@@ -173,105 +175,6 @@ describe('granular hooks', () => {
     });
   });
 
-  describe('useInstance', () => {
-    it('should return null when no data is loaded', () => {
-      const store = getOrCreateStore('users-instance-null', {
-        axios: mockAxios,
-        route: '/users',
-        actions: { getList: true },
-      });
-
-      const { result } = renderHook(() => useInstance(store, 1));
-      expect(result.current).toBeNull();
-    });
-
-    it('should return the instance by id', () => {
-      const store = getOrCreateStore('users-instance-get', {
-        axios: mockAxios,
-        route: '/users',
-        actions: { getList: true },
-      });
-
-      act(() => { store.getState().setList(mockUsers); });
-
-      const { result } = renderHook(() => useInstance(store, 2));
-      expect(result.current).toEqual(mockUsers[1]);
-    });
-
-    it('should return null for non-existent id', () => {
-      const store = getOrCreateStore('users-instance-missing', {
-        axios: mockAxios,
-        route: '/users',
-        actions: { getList: true },
-      });
-
-      act(() => { store.getState().setList(mockUsers); });
-
-      const { result } = renderHook(() => useInstance(store, 999));
-      expect(result.current).toBeNull();
-    });
-
-    it('should work with string ids', () => {
-      const store = getOrCreateStore('users-instance-string-id', {
-        axios: mockAxios,
-        route: '/users',
-        actions: { getList: true },
-      });
-
-      act(() => { store.getState().setList(mockUsers); });
-
-      const { result } = renderHook(() => useInstance(store, '1'));
-      expect(result.current).toEqual(mockUsers[0]);
-    });
-
-    it('should update when the specific instance changes', () => {
-      const store = getOrCreateStore('users-instance-update', {
-        axios: mockAxios,
-        route: '/users',
-        actions: { getList: true },
-      });
-
-      act(() => { store.getState().setList(mockUsers); });
-
-      const { result } = renderHook(() => useInstance(store, 1));
-      expect(result.current!.name).toBe('John Doe');
-
-      act(() => { store.getState().updateInstance({ id: 1, name: 'Updated John', email: 'john@example.com' }); });
-      expect(result.current!.name).toBe('Updated John');
-    });
-
-    it('should return null after the instance is deleted', () => {
-      const store = getOrCreateStore('users-instance-delete', {
-        axios: mockAxios,
-        route: '/users',
-        actions: { getList: true },
-      });
-
-      act(() => { store.getState().setList(mockUsers); });
-
-      const { result } = renderHook(() => useInstance(store, 1));
-      expect(result.current).not.toBeNull();
-
-      act(() => { store.getState().deleteInstance({ id: 1 }); });
-      expect(result.current).toBeNull();
-    });
-
-    it('should return null after setList(null)', () => {
-      const store = getOrCreateStore('users-instance-clear', {
-        axios: mockAxios,
-        route: '/users',
-        actions: { getList: true },
-      });
-
-      act(() => { store.getState().setList(mockUsers); });
-
-      const { result } = renderHook(() => useInstance(store, 1));
-      expect(result.current).not.toBeNull();
-
-      act(() => { store.getState().setList(null); });
-      expect(result.current).toBeNull();
-    });
-  });
 
   describe('useActions', () => {
     it('should return action functions based on config', () => {
@@ -818,6 +721,575 @@ describe('granular hooks', () => {
       const { result } = renderHook(() => useList(store));
       // New item appended, not sorted to front
       expect(result.current!.map(i => i.id)).toEqual([10, 2, 1]);
+    });
+  });
+
+  describe('useGet', () => {
+    it('should return null instance when id is null', () => {
+      const store = getOrCreateStore('users-useget-null', {
+        axios: jest.fn() as any,
+        route: '/users',
+        actions: { get: true },
+      });
+
+      const { result } = renderHook(() => useGet(store, null));
+      const [instance, get] = result.current;
+      expect(instance).toBeNull();
+      expect(get.isLoading).toBe(false);
+      expect(get.error).toBeNull();
+      expect(typeof get).toBe('function');
+    });
+
+    it('should auto-fetch on mount and return instance', async () => {
+      const mockUser = { id: 5, name: 'Alice', email: 'alice@example.com' };
+      const mockAxiosFn = jest.fn().mockResolvedValueOnce({ data: mockUser });
+
+      const store = getOrCreateStore('users-useget-fetch', {
+        axios: mockAxiosFn as any,
+        route: '/users',
+        actions: { get: true },
+      });
+
+      const { result } = renderHook(() => useGet(store, 5));
+
+      expect(result.current[0]).toBeNull();
+
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
+
+      expect(result.current[0]).toEqual(mockUser);
+      expect(result.current[1].isLoading).toBe(false);
+      expect(mockAxiosFn).toHaveBeenCalledWith(
+        expect.objectContaining({ method: 'get', url: '/users/5' })
+      );
+    });
+
+    it('should not fetch when instance is already in store', () => {
+      const mockAxiosFn = jest.fn();
+
+      const store = getOrCreateStore('users-useget-existing', {
+        axios: mockAxiosFn as any,
+        route: '/users',
+        actions: { get: true },
+      });
+
+      const existingUser = { id: 3, name: 'Bob', email: 'bob@example.com' };
+      act(() => { store.getState().setInstance(existingUser); });
+
+      const { result } = renderHook(() => useGet(store, 3));
+
+      expect(result.current[0]).toEqual(existingUser);
+      expect(mockAxiosFn).not.toHaveBeenCalled();
+    });
+
+    it('should expose isLoading on get function during fetch', async () => {
+      let resolvePromise: (value: any) => void;
+      const mockAxiosFn = jest.fn().mockImplementation(
+        () => new Promise((resolve) => { resolvePromise = resolve; })
+      );
+
+      const store = getOrCreateStore('users-useget-loading', {
+        axios: mockAxiosFn as any,
+        route: '/users',
+        actions: { get: true },
+      });
+
+      const { result } = renderHook(() => useGet(store, 1));
+
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
+
+      expect(result.current[1].isLoading).toBe(true);
+
+      await act(async () => {
+        resolvePromise!({ data: { id: 1, name: 'John', email: 'john@example.com' } });
+        await new Promise((r) => setTimeout(r, 0));
+      });
+
+      expect(result.current[1].isLoading).toBe(false);
+      expect(result.current[0]).toEqual({ id: 1, name: 'John', email: 'john@example.com' });
+    });
+
+    it('should expose error on get function and not retry automatically', async () => {
+      const mockError = new Error('Network error');
+      const mockAxiosFn = jest.fn().mockRejectedValueOnce(mockError);
+      const onError = jest.fn();
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      const store = getOrCreateStore('users-useget-error', {
+        axios: mockAxiosFn as any,
+        route: '/users',
+        actions: { get: true },
+        onError,
+      });
+
+      const { result } = renderHook(() => useGet(store, 1));
+
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
+
+      expect(result.current[0]).toBeNull();
+      expect(result.current[1].error).toBe(mockError);
+      expect(onError).toHaveBeenCalledWith(mockError);
+      expect(mockAxiosFn).toHaveBeenCalledTimes(1);
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should allow manual retry via get() after error', async () => {
+      const mockError = new Error('Network error');
+      const mockUser = { id: 1, name: 'John', email: 'john@example.com' };
+      const mockAxiosFn = jest.fn()
+        .mockRejectedValueOnce(mockError)
+        .mockResolvedValueOnce({ data: mockUser });
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      const store = getOrCreateStore('users-useget-retry', {
+        axios: mockAxiosFn as any,
+        route: '/users',
+        actions: { get: true },
+      });
+
+      const { result } = renderHook(() => useGet(store, 1));
+
+      // First fetch fails
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
+
+      expect(result.current[1].error).toBe(mockError);
+
+      // Manual retry
+      await act(async () => {
+        result.current[1]();
+        await new Promise((r) => setTimeout(r, 0));
+      });
+
+      expect(result.current[0]).toEqual(mockUser);
+      expect(result.current[1].error).toBeNull();
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should not auto-fetch when already loading', async () => {
+      let resolvePromise: (value: any) => void;
+      const mockAxiosFn = jest.fn().mockImplementation(
+        () => new Promise((resolve) => { resolvePromise = resolve; })
+      );
+
+      const store = getOrCreateStore('users-useget-no-double-fetch', {
+        axios: mockAxiosFn as any,
+        route: '/users',
+        actions: { get: true },
+      });
+
+      const { result } = renderHook(() => useGet(store, 1));
+
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
+
+      // Only one fetch even though effect ran
+      expect(mockAxiosFn).toHaveBeenCalledTimes(1);
+      expect(result.current[1].isLoading).toBe(true);
+
+      await act(async () => {
+        resolvePromise!({ data: { id: 1, name: 'John', email: 'john@example.com' } });
+        await new Promise((r) => setTimeout(r, 0));
+      });
+    });
+
+    it('should return null when data exists but id is not found', () => {
+      const store = getOrCreateStore('users-useget-not-found', {
+        axios: jest.fn() as any,
+        route: '/users',
+        actions: { get: true },
+      });
+
+      act(() => { store.getState().setList(mockUsers); });
+
+      const { result } = renderHook(() => useGet(store, 999));
+      expect(result.current[0]).toBeNull();
+    });
+
+    it('should return null when called without id', () => {
+      const store = getOrCreateStore('users-useget-no-id', {
+        axios: jest.fn() as any,
+        route: '/users',
+        actions: { get: true },
+      });
+
+      act(() => { store.getState().setList(mockUsers); });
+
+      const { result } = renderHook(() => useGet(store));
+      expect(result.current[0]).toBeNull();
+      // get() should be a no-op
+      act(() => { result.current[1](); });
+      expect(result.current[0]).toBeNull();
+    });
+
+    it('should work with string ids', async () => {
+      const mockUser = { id: 7, name: 'Jane', email: 'jane@example.com' };
+      const mockAxiosFn = jest.fn().mockResolvedValueOnce({ data: mockUser });
+
+      const store = getOrCreateStore('users-useget-string-id', {
+        axios: mockAxiosFn as any,
+        route: '/users',
+        actions: { get: true },
+      });
+
+      const { result } = renderHook(() => useGet(store, '7'));
+
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
+
+      expect(result.current[0]).toEqual(mockUser);
+      expect(mockAxiosFn).toHaveBeenCalledWith(
+        expect.objectContaining({ method: 'get', url: '/users/7' })
+      );
+    });
+  });
+
+  describe('useGetList', () => {
+    it('should auto-fetch on mount when store is empty', async () => {
+      const mockAxiosFn = jest.fn().mockResolvedValueOnce({ data: mockUsers });
+
+      const store = getOrCreateStore('users-usegetlist-auto', {
+        axios: mockAxiosFn as any,
+        route: '/users',
+        actions: { getList: true },
+      });
+
+      const { result } = renderHook(() => useGetList(store));
+
+      expect(result.current[0]).toBeNull();
+
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
+
+      expect(result.current[0]).toEqual(mockUsers);
+      expect(result.current[1].isLoading).toBe(false);
+      expect(mockAxiosFn).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not fetch when data already exists', () => {
+      const mockAxiosFn = jest.fn();
+
+      const store = getOrCreateStore('users-usegetlist-existing', {
+        axios: mockAxiosFn as any,
+        route: '/users',
+        actions: { getList: true },
+      });
+
+      act(() => { store.getState().setList(mockUsers); });
+
+      const { result } = renderHook(() => useGetList(store));
+
+      expect(result.current[0]).toEqual(mockUsers);
+      expect(mockAxiosFn).not.toHaveBeenCalled();
+    });
+
+    it('should expose isLoading on getList function during fetch', async () => {
+      let resolvePromise: (value: any) => void;
+      const mockAxiosFn = jest.fn().mockImplementation(
+        () => new Promise((resolve) => { resolvePromise = resolve; })
+      );
+
+      const store = getOrCreateStore('users-usegetlist-loading', {
+        axios: mockAxiosFn as any,
+        route: '/users',
+        actions: { getList: true },
+      });
+
+      const { result } = renderHook(() => useGetList(store));
+
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
+
+      expect(result.current[1].isLoading).toBe(true);
+
+      await act(async () => {
+        resolvePromise!({ data: mockUsers });
+        await new Promise((r) => setTimeout(r, 0));
+      });
+
+      expect(result.current[1].isLoading).toBe(false);
+      expect(result.current[0]).toEqual(mockUsers);
+    });
+
+    it('should expose error on getList function and not retry automatically', async () => {
+      const mockError = new Error('Network error');
+      const mockAxiosFn = jest.fn().mockRejectedValueOnce(mockError);
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      const store = getOrCreateStore('users-usegetlist-error', {
+        axios: mockAxiosFn as any,
+        route: '/users',
+        actions: { getList: true },
+      });
+
+      const { result } = renderHook(() => useGetList(store));
+
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
+
+      expect(result.current[0]).toBeNull();
+      expect(result.current[1].error).toBe(mockError);
+      expect(mockAxiosFn).toHaveBeenCalledTimes(1);
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should allow manual refetch via getList()', async () => {
+      const mockAxiosFn = jest.fn()
+        .mockResolvedValueOnce({ data: mockUsers })
+        .mockResolvedValueOnce({ data: [...mockUsers, { id: 4, name: 'New', email: 'new@example.com' }] });
+
+      const store = getOrCreateStore('users-usegetlist-refetch', {
+        axios: mockAxiosFn as any,
+        route: '/users',
+        actions: { getList: true },
+      });
+
+      const { result } = renderHook(() => useGetList(store));
+
+      // Auto-fetch
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
+
+      expect(result.current[0]).toHaveLength(3);
+
+      // Manual refetch
+      await act(async () => {
+        result.current[1]();
+        await new Promise((r) => setTimeout(r, 0));
+      });
+
+      expect(result.current[0]).toHaveLength(4);
+      expect(mockAxiosFn).toHaveBeenCalledTimes(2);
+    });
+
+    it('should handle paginated response format', async () => {
+      const mockAxiosFn = jest.fn().mockResolvedValueOnce({
+        data: { results: mockUsers, count: 100 },
+      });
+
+      const store = getOrCreateStore('users-usegetlist-paginated', {
+        axios: mockAxiosFn as any,
+        route: '/users',
+        actions: { getList: true },
+        pagination: {
+          limit: 10,
+          prepare: (data: any) => ({ count: data.count }),
+        },
+      });
+
+      const { result } = renderHook(() => useGetList(store));
+
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
+
+      expect(result.current[0]).toEqual(mockUsers);
+      expect(store.getState().pagination?.count).toBe(100);
+    });
+
+    it('should not auto-fetch when already loading', async () => {
+      let resolvePromise: (value: any) => void;
+      const mockAxiosFn = jest.fn().mockImplementation(
+        () => new Promise((resolve) => { resolvePromise = resolve; })
+      );
+
+      const store = getOrCreateStore('users-usegetlist-no-double-fetch', {
+        axios: mockAxiosFn as any,
+        route: '/users',
+        actions: { getList: true },
+      });
+
+      const { result } = renderHook(() => useGetList(store));
+
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
+
+      expect(result.current[1].isLoading).toBe(true);
+      expect(mockAxiosFn).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        resolvePromise!({ data: mockUsers });
+        await new Promise((r) => setTimeout(r, 0));
+      });
+
+      expect(result.current[0]).toEqual(mockUsers);
+    });
+
+    it('should not retry after error', async () => {
+      const mockError = new Error('Network error');
+      const mockAxiosFn = jest.fn().mockRejectedValueOnce(mockError);
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      const store = getOrCreateStore('users-usegetlist-error-no-retry', {
+        axios: mockAxiosFn as any,
+        route: '/users',
+        actions: { getList: true },
+      });
+
+      const { result } = renderHook(() => useGetList(store));
+
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
+
+      expect(result.current[0]).toBeNull();
+      expect(result.current[1].error).toBe(mockError);
+      expect(mockAxiosFn).toHaveBeenCalledTimes(1);
+
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('useCrud with id', () => {
+    it('should auto-fetch and return instance when id is provided', async () => {
+      const mockUser = { id: 5, name: 'Alice', email: 'alice@example.com' };
+      const mockAxiosFn = jest.fn().mockResolvedValueOnce({ data: mockUser });
+
+      const store = getOrCreateStore('users-usecrud-id-fetch', {
+        axios: mockAxiosFn as any,
+        route: '/users',
+        actions: { get: true },
+      });
+
+      const { result } = renderHook(() => useCrud(store, 5));
+
+      expect(result.current.instance).toBeNull();
+
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
+
+      expect(result.current.instance).toEqual(mockUser);
+    });
+
+    it('should skip fetch when instance already in store', () => {
+      const mockAxiosFn = jest.fn();
+
+      const store = getOrCreateStore('users-usecrud-id-existing', {
+        axios: mockAxiosFn as any,
+        route: '/users',
+        actions: { get: true },
+      });
+
+      const existingUser = { id: 3, name: 'Bob', email: 'bob@example.com' };
+      act(() => { store.getState().setInstance(existingUser); });
+
+      const { result } = renderHook(() => useCrud(store, 3));
+
+      expect(result.current.instance).toEqual(existingUser);
+      expect(mockAxiosFn).not.toHaveBeenCalled();
+    });
+
+    it('should return null instance when no id is provided', () => {
+      const store = getOrCreateStore('users-usecrud-no-id', {
+        axios: jest.fn() as any,
+        route: '/users',
+        actions: { get: true },
+      });
+
+      const { result } = renderHook(() => useCrud(store));
+
+      expect(result.current.instance).toBeNull();
+    });
+
+    it('should return null instance when id is null', () => {
+      const mockAxiosFn = jest.fn();
+
+      const store = getOrCreateStore('users-usecrud-null-id', {
+        axios: mockAxiosFn as any,
+        route: '/users',
+        actions: { get: true },
+      });
+
+      const { result } = renderHook(() => useCrud(store, null));
+
+      expect(result.current.instance).toBeNull();
+      expect(mockAxiosFn).not.toHaveBeenCalled();
+    });
+
+    it('should not auto-fetch when get action has error', async () => {
+      const mockError = new Error('Network error');
+      const mockAxiosFn = jest.fn().mockRejectedValueOnce(mockError);
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      const store = getOrCreateStore('users-usecrud-id-error', {
+        axios: mockAxiosFn as any,
+        route: '/users',
+        actions: { get: true },
+      });
+
+      const { result } = renderHook(() => useCrud(store, 1));
+
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
+
+      expect(result.current.instance).toBeNull();
+      expect(result.current.get.error).toBe(mockError);
+      // Should not retry automatically
+      expect(mockAxiosFn).toHaveBeenCalledTimes(1);
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should not auto-fetch when already loading', async () => {
+      let resolvePromise: (value: any) => void;
+      const mockAxiosFn = jest.fn().mockImplementation(
+        () => new Promise((resolve) => { resolvePromise = resolve; })
+      );
+
+      const store = getOrCreateStore('users-usecrud-id-loading', {
+        axios: mockAxiosFn as any,
+        route: '/users',
+        actions: { get: true },
+      });
+
+      const { result } = renderHook(() => useCrud(store, 1));
+
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
+
+      expect(result.current.get.isLoading).toBe(true);
+      expect(mockAxiosFn).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        resolvePromise!({ data: { id: 1, name: 'John', email: 'john@example.com' } });
+        await new Promise((r) => setTimeout(r, 0));
+      });
+
+      expect(result.current.instance).toEqual({ id: 1, name: 'John', email: 'john@example.com' });
+    });
+
+    it('should not auto-fetch when get is not configured', () => {
+      const mockAxiosFn = jest.fn();
+
+      const store = getOrCreateStore('users-usecrud-id-no-get', {
+        axios: mockAxiosFn as any,
+        route: '/users',
+        actions: { getList: true },
+      });
+
+      const { result } = renderHook(() => useCrud(store, 1));
+
+      expect(result.current.instance).toBeUndefined();
+      expect(mockAxiosFn).not.toHaveBeenCalled();
     });
   });
 

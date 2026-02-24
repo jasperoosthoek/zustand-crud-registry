@@ -90,3 +90,14 @@ full.state;
 full.setState({ filter: 'active' });
 full.record;
 full.selected;
+
+// ── Instance (config-driven: actions.get) ────────────────────────
+
+// ── Instance via useCrud(store, id?) ──────────────────────────────
+
+// instance is always T | null on the return type (same as action functions)
+const _plainInst: Item | null = plain.instance;
+
+// With id — auto-fetches
+const fullWithId = useCrud(fullStore, '1');
+const _fullInst: Item | null = fullWithId.instance;
