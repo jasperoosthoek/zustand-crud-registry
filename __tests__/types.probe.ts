@@ -17,9 +17,43 @@ const plainStore = getOrCreatePlain("items", {
 
 const plain = useCrud(plainStore);
 
-// Pagination should not exist:
+// ── Absent fields on plain (only getList configured) ────────────────
+
+// Action functions — correctly conditional
+// @ts-expect-error — get not in actions
+plain.get;
+// @ts-expect-error — create not in actions
+plain.create;
+// @ts-expect-error — update not in actions
+plain.update;
+// @ts-expect-error — delete not in actions
+plain.delete;
 // @ts-expect-error — no pagination configured
 plain.pagination;
+
+// BUG: These fields should error but don't — the mapped types with
+// `Extract<keyof C, 'key'> as 'newName'` leak through as accessible.
+// Uncomment these @ts-expect-error lines once the types are fixed:
+// // @ts-expect-error — no pagination configured
+plain.setPagination;
+// // @ts-expect-error — no includeList configured
+plain.list;
+// // @ts-expect-error — no includeRecord configured
+plain.record;
+// // @ts-expect-error — no state configured
+plain.state;
+// // @ts-expect-error — no state configured
+plain.setState;
+// // @ts-expect-error — no select configured
+plain.selected;
+// // @ts-expect-error — no select configured
+plain.select;
+// // @ts-expect-error — no select configured
+plain.toggle;
+// // @ts-expect-error — no select configured
+plain.clear;
+// // @ts-expect-error — instance should require get action
+plain.instance;
 
 // ── Store WITH select: 'single' ───────────────────────────────────
 const getOrCreateSingle = createStoreRegistry<{ items: Item }>();
@@ -90,14 +124,35 @@ full.state;
 full.setState({ filter: 'active' });
 full.record;
 full.selected;
+// @ts-expect-error — get not in actions
+full.get;
+// @ts-expect-error — create not in actions
+full.create;
+// @ts-expect-error — update not in actions
+full.update;
+// @ts-expect-error — delete not in actions
+full.delete;
 
-// ── Instance (config-driven: actions.get) ────────────────────────
+// ── Store with all actions ───────────────────────────────────────
+const getOrCreateAllActions = createStoreRegistry<{ items: Item }>();
+const allActionsStore = getOrCreateAllActions("items", {
+  axios,
+  route: "/items",
+  actions: { get: true, getList: true, create: true, update: true, delete: true },
+  includeList: true,
+});
 
-// ── Instance via useCrud(store, id?) ──────────────────────────────
-
-// instance is always T | null on the return type (same as action functions)
-const _plainInst: Item | null = plain.instance;
+const allActions = useCrud(allActionsStore);
+// All action functions should exist
+allActions.get;
+allActions.getList;
+allActions.create;
+allActions.update;
+allActions.delete;
+allActions.list;
+// instance should exist (get is configured)
+const _allActionsInst: Item | null = allActions.instance;
 
 // With id — auto-fetches
-const fullWithId = useCrud(fullStore, '1');
-const _fullInst: Item | null = fullWithId.instance;
+const allActionsWithId = useCrud(allActionsStore, '1');
+const _allActionsInstById: Item | null = allActionsWithId.instance;
