@@ -4,7 +4,7 @@ import { defaultLoadingState, initiateAction, finishAction, actionError, getLoad
 import type { AxiosRequestConfig, Method } from 'axios'
 import type { LoadingStateValue } from "./loadingState";
 import type { CrudStore } from "./createStoreRegistry";
-import type { Config, ValidatedConfig, ValidConfig, AsyncFunction, Route, Pagination, Prettify } from "./config"
+import type { Config, ValidatedConfig, ValidConfig, AsyncFunction, Route, Prettify } from "./config"
 
 export const callIfFunc = (func: any, ...params: any[]) => {
   if (typeof func === 'function') {

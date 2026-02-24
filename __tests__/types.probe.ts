@@ -31,28 +31,25 @@ plain.delete;
 // @ts-expect-error — no pagination configured
 plain.pagination;
 
-// BUG: These fields should error but don't — the mapped types with
-// `Extract<keyof C, 'key'> as 'newName'` leak through as accessible.
-// Uncomment these @ts-expect-error lines once the types are fixed:
-// // @ts-expect-error — no pagination configured
+// @ts-expect-error — no pagination configured
 plain.setPagination;
-// // @ts-expect-error — no includeList configured
+// @ts-expect-error — no includeList configured
 plain.list;
-// // @ts-expect-error — no includeRecord configured
+// @ts-expect-error — no includeRecord configured
 plain.record;
-// // @ts-expect-error — no state configured
+// @ts-expect-error — no state configured
 plain.state;
-// // @ts-expect-error — no state configured
+// @ts-expect-error — no state configured
 plain.setState;
-// // @ts-expect-error — no select configured
+// @ts-expect-error — no select configured
 plain.selected;
-// // @ts-expect-error — no select configured
+// @ts-expect-error — no select configured
 plain.select;
-// // @ts-expect-error — no select configured
+// @ts-expect-error — no select configured
 plain.toggle;
-// // @ts-expect-error — no select configured
+// @ts-expect-error — no select configured
 plain.clear;
-// // @ts-expect-error — instance should require get action
+// @ts-expect-error — get not in actions, so no instance
 plain.instance;
 
 // ── Store WITH select: 'single' ───────────────────────────────────
@@ -132,6 +129,8 @@ full.create;
 full.update;
 // @ts-expect-error — delete not in actions
 full.delete;
+// @ts-expect-error — get not in actions, so no instance
+full.instance;
 
 // ── Store with all actions ───────────────────────────────────────
 const getOrCreateAllActions = createStoreRegistry<{ items: Item }>();

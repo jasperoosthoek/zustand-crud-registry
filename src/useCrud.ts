@@ -12,46 +12,44 @@ type ConditionalActionFunctions<
   [K in keyof C['actions'] & keyof ActionFunctions<T>]: ActionFunctions<T>[K];
 };
 
-// Mapped types with Extract resolve eagerly (never → {}), unlike
-// conditional types which stay deferred and break Prettify flattening.
+// Conditional field types: 'configKey' extends keyof C checks presence at
+// the call site, resolving eagerly so Prettify can flatten the intersection.
+// NOTE: mapped types with Extract + 'as' key remapping don't work on TS 4.9
+// (the remapped key leaks through even when Extract yields never).
 
-type PaginationFields<C> = {
-  [K in Extract<keyof C, 'pagination'>]: Pagination;
-} & {
-  [K in Extract<keyof C, 'pagination'> as 'setPagination']: (partial: Partial<Pagination>) => void;
-};
+type ListFields<T, C> = 'includeList' extends keyof C
+  ? { list: T[] | null }
+  : {};
 
-type StateFields<C, S> = {
-  [K in Extract<keyof C, 'state'> as 'state']: S;
-} & {
-  [K in Extract<keyof C, 'state'> as 'setState']: (subState: Partial<S>) => void;
-};
+type RecordFields<T, C> = 'includeRecord' extends keyof C
+  ? { record: { [key: string]: T } | null }
+  : {};
 
-type ListFields<T, C> = {
-  [K in Extract<keyof C, 'includeList'> as 'list']: T[] | null;
-};
+type PaginationFields<C> = 'pagination' extends keyof C
+  ? { pagination: Pagination; setPagination: (partial: Partial<Pagination>) => void }
+  : {};
 
-type RecordFields<T, C> = {
-  [K in Extract<keyof C, 'includeRecord'> as 'record']: { [key: string]: T } | null;
-};
+type StateFields<C, S> = 'state' extends keyof C
+  ? { state: S; setState: (subState: Partial<S>) => void }
+  : {};
 
-// Indexed type map: resolves selected to T | null or T[] based on C['select'].
+type InstanceFields<T, C> = C extends { actions: { get: any } }
+  ? { instance: T | null }
+  : {};
+
 type SelectedTypeMap<T> = {
   single: T | null;
   multiple: T[];
 };
 
-// useCrud exposes selected (instance or instances) but NOT selectedIds.
-// useSelect is the hook that additionally exposes selectedIds.
-type SelectFields<T, C> = {
-  [K in Extract<keyof C, 'select'> as 'selected']: SelectedTypeMap<T>[C[K] & keyof SelectedTypeMap<T>];
-} & {
-  [K in Extract<keyof C, 'select'> as 'select']: (instanceOrId: T | string | number | null) => void;
-} & {
-  [K in Extract<keyof C, 'select'> as 'toggle']: (instanceOrId: T | string | number) => void;
-} & {
-  [K in Extract<keyof C, 'select'> as 'clear']: () => void;
-};
+type SelectFields<T, C> = 'select' extends keyof C
+  ? {
+      selected: SelectedTypeMap<T>[C['select'] & keyof SelectedTypeMap<T>];
+      select: (instanceOrId: T | string | number | null) => void;
+      toggle: (instanceOrId: T | string | number) => void;
+      clear: () => void;
+    }
+  : {};
 
 const toId = <T>(instanceOrId: T | string | number, byKey: string): string =>
   typeof instanceOrId === 'string' || typeof instanceOrId === 'number'
@@ -181,6 +179,6 @@ export function useCrud<
     & CustomActionFunctions<T, V>
     & RecordFields<T, C>
     & SelectFields<T, C>
-    & { instance: T | null }
+    & InstanceFields<T, C>
   >;
 }
