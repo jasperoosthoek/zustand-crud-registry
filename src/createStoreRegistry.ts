@@ -58,7 +58,7 @@ export function createStoreRegistry<Models extends Record<string, any>>() {
           data: null,
           setList: (list) => set({
             data: list
-              ? new Map(list.map((item) => [String((item as any)[byKey]), item]))
+              ? new Map(list.map((item) => [String((item as Record<string, unknown>)[byKey]), item]))
               : null,
             selectedIds: [],
           }),
@@ -67,7 +67,7 @@ export function createStoreRegistry<Models extends Record<string, any>>() {
               if (!state.data) return {};
               const next = new Map(state.data);
               list.forEach((item) => {
-                const id = String((item as any)[byKey]);
+                const id = String((item as Record<string, unknown>)[byKey]);
                 const existing = next.get(id);
                 if (existing) { next.set(id, { ...existing, ...item }); }
               });
@@ -78,7 +78,7 @@ export function createStoreRegistry<Models extends Record<string, any>>() {
               const next = new Map(state.data || []);
               let newCount = 0;
               list.forEach((item) => {
-                const id = String((item as any)[byKey]);
+                const id = String((item as Record<string, unknown>)[byKey]);
                 if (!next.has(id)) newCount++;
                 next.set(id, item);
               });
@@ -91,7 +91,7 @@ export function createStoreRegistry<Models extends Record<string, any>>() {
             }),
           setInstance: (instance: Models[K]) =>
             set((state) => {
-              const id = String((instance as any)[byKey]);
+              const id = String((instance as Record<string, unknown>)[byKey]);
               const next = new Map(state.data || []);
               const isNew = !next.has(id);
               next.set(id, instance);
@@ -105,7 +105,7 @@ export function createStoreRegistry<Models extends Record<string, any>>() {
           updateInstance: (instance: Models[K]) =>
             set((state) => {
               if (!state.data) return {};
-              const id = String((instance as any)[byKey]);
+              const id = String((instance as Record<string, unknown>)[byKey]);
               const next = new Map(state.data);
               const existing = next.get(id);
               next.set(id, existing ? { ...existing, ...instance } : instance as Models[K]);
@@ -114,7 +114,7 @@ export function createStoreRegistry<Models extends Record<string, any>>() {
           deleteInstance: (instance: Models[K]) =>
             set((state) => {
               if (!state.data) return {};
-              const id = String((instance as any)[byKey]);
+              const id = String((instance as Record<string, unknown>)[byKey]);
               const next = new Map(state.data);
               next.delete(id);
               return {

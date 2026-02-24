@@ -5,7 +5,7 @@ import type { Config, ValidatedConfig } from "./config";
 const toId = <T>(instanceOrId: T | string | number, byKey: string): string =>
   typeof instanceOrId === 'string' || typeof instanceOrId === 'number'
     ? String(instanceOrId)
-    : String((instanceOrId as any)[byKey]);
+    : String((instanceOrId as Record<string, unknown>)[byKey]);
 
 // ── Types ──────────────────────────────────────────────────────────
 

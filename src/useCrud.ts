@@ -56,7 +56,7 @@ type SelectFields<T, C> = {
 const toId = <T>(instanceOrId: T | string | number, byKey: string): string =>
   typeof instanceOrId === 'string' || typeof instanceOrId === 'number'
     ? String(instanceOrId)
-    : String((instanceOrId as any)[byKey]);
+    : String((instanceOrId as Record<string, unknown>)[byKey]);
 
 export function useCrud<
   T,
@@ -91,7 +91,7 @@ export function useCrud<
 
   // Actions
   const actions = useActions(store);
-  const actionGet = (actions as any).get;
+  const actionGet = (actions as { get?: ActionFunctions<T>['get'] }).get;
 
   // Auto-fetch instance on mount / id change when not in store
   useEffect(() => {

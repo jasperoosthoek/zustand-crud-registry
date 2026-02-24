@@ -3,7 +3,7 @@ import { defaultLoadingState } from "./loadingState";
 import type { LoadingStateValue } from "./loadingState";
 import type { CrudStore } from "./createStoreRegistry";
 import type { Config, ValidatedConfig } from "./config";
-import { useActions } from "./useActions";
+import { useActions, type ActionFunctions } from "./useActions";
 
 export type GetListFunction = (() => void) & LoadingStateValue;
 
@@ -17,7 +17,7 @@ export function useGetList<T, K extends string, C extends Config<K, T>>(
   );
 
   const actions = useActions(store);
-  const actionGetList = (actions as any).getList;
+  const actionGetList = (actions as { getList?: ActionFunctions<T>['getList'] }).getList;
 
   const getList = useCallback(() => {
     if (!actionGetList) return;

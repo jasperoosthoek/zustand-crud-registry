@@ -71,3 +71,6 @@
 - Remove `useInstance` (replaced by `useGet`)
 - `useCrud` no longer uses conditional hook calls internally
 - `useCrud(store, id?)` accepts optional `id` — returns `instance: T | null` with auto-fetch via existing `get` action
+
+##### Upcoming
+- Replace lazy `any` type casting by `ActionFunctions` & `Record<string, unknown>)` type
