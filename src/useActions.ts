@@ -118,7 +118,7 @@ export function useActions<
       } = (
         actionKey === 'custom' && customAction
           ? customActions[customAction]
-          : (configActions as unknown as any)[actionKey]
+          : (configActions as Record<string, AsyncFunction<T>>)[actionKey]
        ) as AsyncFunction<T>;
 
       const paginationState = store.getState().pagination;
@@ -197,50 +197,34 @@ export function useActions<
 
   type V = ValidatedConfig<K, T, C>;
 
-  const actions: Record<string, unknown> = {
-    ...'get' in configActions
-      ? { get: useMemo(() => getAction<T, 'get', undefined>('get'), []) }
-      : {},
-    ...'getList' in configActions
-      ? { getList: useMemo(() => getAction<T, 'getList', undefined>('getList'), []) }
-      : {},
-    ...'create' in configActions
-      ? { create: useMemo(() => getAction<T, 'create', undefined>('create'), []) }
-      : {},
-    ...'update' in configActions
-      ? { update: useMemo(() => getAction<T, 'update', undefined>('update'), []) }
-      : {},
-    ...'delete' in configActions
-      ? { delete: useMemo(() => getAction<T, 'delete', undefined>('delete'), []) }
-      : {},
-  }
+  // Unconditional useMemo calls — condition is inside, not guarding the hook
+  const actionGet = useMemo(() => 'get' in configActions ? getAction<T, 'get', undefined>('get') : null, []);
+  const actionGetList = useMemo(() => 'getList' in configActions ? getAction<T, 'getList', undefined>('getList') : null, []);
+  const actionCreate = useMemo(() => 'create' in configActions ? getAction<T, 'create', undefined>('create') : null, []);
+  const actionUpdate = useMemo(() => 'update' in configActions ? getAction<T, 'update', undefined>('update') : null, []);
+  const actionDelete = useMemo(() => 'delete' in configActions ? getAction<T, 'delete', undefined>('delete') : null, []);
 
-  // Update loading state properties on stable action refs (every render)
-  for (const key of Object.keys(actions)) {
-    Object.assign(actions[key] as object, loadingState[key] || defaultLoadingState);
-  }
+  const actions: Partial<ActionFunctions<T>> = {
+    ...actionGet ? { get: actionGet } : {},
+    ...actionGetList ? { getList: actionGetList } : {},
+    ...actionCreate ? { create: actionCreate } : {},
+    ...actionUpdate ? { update: actionUpdate } : {},
+    ...actionDelete ? { delete: actionDelete } : {},
+  };
 
-  function buildCustomActions<
-    T,
-    C extends Config<K, T>,
-    V extends ValidatedConfig<K, T, C>
-  >(
-    store: CrudStore<T, any, C, V>,
-    loadingState: Record<string, LoadingStateValue>
-  ): CustomActionFunctions<T, V> {
+  // Single useMemo for all custom actions — no hooks inside loops
+  const customActionConfig = useMemo(() => {
     const entries = Object.keys(store.config.customActions ?? {}) as (keyof C['customActions'])[];
-
     return entries.reduce((acc, action) => {
-      acc[action] = useMemo(
-        () => getAction<T, 'custom', typeof action>('custom', action),
-        []
-      );
+      acc[action] = getAction<T, 'custom', typeof action>('custom', action);
       return acc;
     }, {} as CustomActionFunctions<T, V>);
-  }
-  const customActionConfig = buildCustomActions(store, loadingState);
+  }, []);
 
-  // Update loading state properties on stable custom action refs (every render)
+  // Update loading state properties on stable action refs (every render)
+  for (const key of Object.keys(actions) as (keyof ActionFunctions<T>)[]) {
+    Object.assign(actions[key]!, loadingState[key] || defaultLoadingState);
+  }
   for (const key of Object.keys(customActionConfig)) {
     Object.assign((customActionConfig as Record<string, object>)[key], loadingState[key] || defaultLoadingState);
   }

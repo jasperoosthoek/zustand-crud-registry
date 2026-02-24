@@ -1,5 +1,6 @@
-import { useMemo, useCallback, useEffect } from "react";
+import { useMemo, useEffect } from "react";
 import { useActions } from "./useActions";
+import { useSelectBase } from "./useSelectBase";
 
 import type { CrudStore } from "./createStoreRegistry";
 import type { Config, ValidatedConfig, ValidConfig, Pagination, Prettify } from "./config"
@@ -51,11 +52,6 @@ type SelectFields<T, C> = 'select' extends keyof C
     }
   : {};
 
-const toId = <T>(instanceOrId: T | string | number, byKey: string): string =>
-  typeof instanceOrId === 'string' || typeof instanceOrId === 'number'
-    ? String(instanceOrId)
-    : String((instanceOrId as Record<string, unknown>)[byKey]);
-
 export function useCrud<
   T,
   K extends string,
@@ -64,7 +60,7 @@ export function useCrud<
   store: CrudStore<T, K, C, ValidatedConfig<K, T, C>>,
   id?: number | string | null
 ) {
-  const { includeList, includeRecord, select: selectConfig, byKey } = store.config;
+  const { includeList, includeRecord, select: selectConfig } = store.config;
   const hasState = store.config.state && Object.keys(store.config.state).length > 0;
   const hasPagination = !!store.config.pagination;
 
@@ -109,51 +105,8 @@ export function useCrud<
   const customState = store((s) => s.state);
   const setCustomState = store((s) => s.setState);
 
-  // Selection
-  const selectedIds = store((s) => s.selectedIds);
-
-  const instances = useMemo(() => {
-    if (!selectConfig || !data || selectedIds.length === 0) return [];
-    return selectedIds
-      .map((id: string) => data.get(id))
-      .filter(Boolean) as T[];
-  }, [data, selectedIds]);
-
-  const selectedInstance = instances[0] ?? null;
-
-  const selectFn = useCallback(
-    (instanceOrId: T | string | number | null) => {
-      store.getState().setSelectedIds(
-        instanceOrId !== null ? [toId(instanceOrId, byKey)] : []
-      );
-    },
-    [store, byKey]
-  );
-
-  const toggle = useCallback(
-    (instanceOrId: T | string | number) => {
-      const toggleId = toId(instanceOrId, byKey);
-      const current = store.getState().selectedIds;
-
-      if (selectConfig === 'single') {
-        store.getState().setSelectedIds(
-          current.includes(toggleId) ? [] : [toggleId]
-        );
-      } else {
-        store.getState().setSelectedIds(
-          current.includes(toggleId)
-            ? current.filter((i: string) => i !== toggleId)
-            : [...current, toggleId]
-        );
-      }
-    },
-    [store, byKey, selectConfig]
-  );
-
-  const clear = useCallback(
-    () => store.getState().setSelectedIds([]),
-    [store]
-  );
+  // Selection — delegate to useSelectBase
+  const selectBase = useSelectBase(store);
 
   type V = ValidatedConfig<K, T, C>;
   type S = C['state'];
@@ -165,10 +118,10 @@ export function useCrud<
     ...hasPagination ? { pagination, setPagination } : {},
     ...hasState ? { state: customState, setState: setCustomState } : {},
     ...selectConfig ? {
-      selected: selectConfig === 'single' ? selectedInstance : instances,
-      select: selectFn,
-      toggle,
-      clear,
+      selected: selectConfig === 'single' ? selectBase.instance : selectBase.instances,
+      select: selectBase.select,
+      toggle: selectBase.toggle,
+      clear: selectBase.clear,
     } : {},
     ...actions,
   } as Prettify<
