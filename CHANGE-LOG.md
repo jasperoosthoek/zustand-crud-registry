@@ -72,5 +72,9 @@
 - `useCrud` no longer uses conditional hook calls internally
 - `useCrud(store, id?)` accepts optional `id` — returns `instance: T | null` with auto-fetch via existing `get` action
 
-##### Upcoming
-- Replace lazy `any` type casting by `ActionFunctions` & `Record<string, unknown>)` type
+##### Version 0.2.3
+- Fix conditional fields on `useCrud` (`list`, `record`, `pagination`, `state`, `select`, `instance`) leaking through as accessible when not configured. They are now correctly absent — add the missing config key if needed (e.g. `includeList: true`).
+- Replace lazy `any` casts in `useActions` with proper `ActionFunctions<T>` types
+- Remove conditional `useMemo` hooks — hooks are now unconditional with conditional internals
+- Deduplicate select logic in `useCrud` — delegates to `useSelectBase`
+- New type probe files for config, action, and store type coverage
