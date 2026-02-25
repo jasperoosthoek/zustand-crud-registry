@@ -82,4 +82,5 @@
 ##### Upcoming
 - Fix custom action loading guard and error state writing to `'custom'` key instead of the actual action name
 - Fix hardcoded `data.id` / `response.id` — now uses `config.id` so custom id fields work for per-record loading indicators
-- Known limitation: when `byKey` differs from `id`, `useCrud(store, value)` requires the `byKey` value for lookup — the auto-fetch then sends that value in the `id` field position
+- Rename config fields: `id` → `detailKey` (field used in detail routes), `byKey` → `id` (field used to key the internal Map, defaults to `detailKey`)
+- Known limitation: when `id` differs from `detailKey`, `useCrud(store, value)` requires the `id` value for lookup — the auto-fetch then sends that value in the `detailKey` field position

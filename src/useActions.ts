@@ -68,7 +68,7 @@ const getAxiosConfig = ({
   }: GetAxiosConfigProps) => ({
     ...axiosConfig || {},
     method,
-    url: typeof route === 'function' ? route(original ? original : data, { args, params }) : route,
+    url: typeof route === 'function' ? route(data, { args, params, original }) : route,
     params,
     ...data
       ? { data: typeof prepare === 'function' ? prepare(data, { args, params }) : data }
@@ -138,9 +138,17 @@ export function useActions<
         axiosConfig,
         args,
         prepare,
+        ...actionKey === 'update' && data != null
+          ? { original: (() => {
+              const mapData = store.getState().data;
+              if (!mapData) return undefined;
+              const idValue = data[store.config.id];
+              return idValue != null ? mapData.get(String(idValue)) : undefined;
+            })() }
+          : {},
       })
 
-      const id = data?.[store.config.id]
+      const id = data?.[store.config.detailKey]
       await initiateAction(
         store,
         loadingStateKey,

@@ -309,8 +309,8 @@ describe('Zustand CRUD Registry', () => {
 
       const validated = validateConfig<'users', TestUser, typeof config>(config);
 
+      expect(validated.detailKey).toBe('id');
       expect(validated.id).toBe('id');
-      expect(validated.byKey).toBe('id');
       expect(validated.parseIdToInt).toBe(false);
       expect(validated.state).toEqual({});
       expect(validated.axios).toBe(mockAxios);
@@ -325,8 +325,8 @@ describe('Zustand CRUD Registry', () => {
       const config = {
         axios: mockAxios,
         route: '/users',
+        detailKey: 'userId',
         id: 'userId',
-        byKey: 'userId',
         parseIdToInt: true,
         state: { selectedId: null },
         onError: mockOnError,
@@ -335,8 +335,8 @@ describe('Zustand CRUD Registry', () => {
 
       const validated = validateConfig<'users', TestUser, typeof config>(config);
 
+      expect(validated.detailKey).toBe('userId');
       expect(validated.id).toBe('userId');
-      expect(validated.byKey).toBe('userId');
       expect(validated.parseIdToInt).toBe(true);
       expect(validated.state).toEqual({ selectedId: null });
       expect(validated.onError).toBe(mockOnError);

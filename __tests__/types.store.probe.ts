@@ -27,8 +27,8 @@ store.config.actions.get;
 store.config.actions.create;
 
 // store.config scalar fields
+const _configDetailKey: string = store.config.detailKey;
 const _configId: string = store.config.id;
-const _configByKey: string = store.config.byKey;
 
 // store.rawConfig preserves original config type
 const _rawRoute: Route = store.rawConfig.route;

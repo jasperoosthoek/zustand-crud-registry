@@ -101,8 +101,8 @@ const paginatedStore = registry5("items", {
 const _paginationCfg: PaginationConfig | null = paginatedStore.config.pagination;
 
 // ── Config scalar fields ───────────────────────────────────────────
+const _detailKey: string = partialStore.config.detailKey;
 const _id: string = partialStore.config.id;
-const _byKey: string = partialStore.config.byKey;
 const _parseIdToInt: boolean = partialStore.config.parseIdToInt;
 const _includeList: boolean = partialStore.config.includeList;
 const _includeRecord: boolean = partialStore.config.includeRecord;

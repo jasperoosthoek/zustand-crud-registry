@@ -16,39 +16,298 @@ const mockAxios = {
   }
 };
 
-interface UuidItem {
-  uuid: string;
-  name: string;
-}
-
-interface SlugItem {
-  id: number;
+// Section 1: slug is the only identifier (no 'id' field)
+interface SlugOnlyItem {
   slug: string;
   name: string;
 }
 
+// Section 2: both numeric id and uuid; Map keyed by uuid, routes use numeric id
+interface UuidKeyItem {
+  id: number;
+  uuid: string;
+  name: string;
+}
+
+// Section 3: both uuid and slug; routes use slug, Map keyed by uuid
 interface DualKeyItem {
   uuid: string;
   slug: string;
   name: string;
 }
 
-describe('custom id and byKey', () => {
+describe('custom detailKey and id', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  // ── Custom id (id: 'uuid') ─────────────────────────────────────────
-  // byKey defaults to 'uuid', so both store keying and routes use uuid.
+  // ── Custom detailKey (detailKey: 'slug') ──────────────────────────────
+  // id defaults to 'slug', so both store keying and routes use slug.
 
-  describe('custom id (id: "uuid")', () => {
-    let getOrCreate: ReturnType<typeof createStoreRegistry<{ items: UuidItem }>>;
+  describe('custom detailKey (detailKey: "slug")', () => {
+    let getOrCreate: ReturnType<typeof createStoreRegistry<{ items: SlugOnlyItem }>>;
 
     beforeEach(() => {
-      getOrCreate = createStoreRegistry<{ items: UuidItem }>();
+      getOrCreate = createStoreRegistry<{ items: SlugOnlyItem }>();
     });
 
-    it('should key store data by uuid', () => {
+    it('should key store data by slug', () => {
+      const store = getOrCreate('items', {
+        axios: mockAxios as any,
+        route: '/items',
+        detailKey: 'slug',
+        actions: { getList: true },
+      });
+
+      const items: SlugOnlyItem[] = [
+        { slug: 'item-a', name: 'Item A' },
+        { slug: 'item-b', name: 'Item B' },
+      ];
+      store.getState().setList(items);
+
+      const data = store.getState().data!;
+      expect(data.get('item-a')).toEqual(items[0]);
+      expect(data.get('item-b')).toEqual(items[1]);
+      expect(data.get('0')).toBeUndefined();
+    });
+
+    it('should setInstance/updateInstance/deleteInstance by slug', () => {
+      const store = getOrCreate('items_crud', {
+        axios: mockAxios as any,
+        route: '/items',
+        detailKey: 'slug',
+        actions: { get: true, create: true, update: true, delete: true },
+      });
+
+      const item: SlugOnlyItem = { slug: 'item-a', name: 'Item A' };
+      store.getState().setInstance(item);
+      expect(store.getState().data!.get('item-a')).toEqual(item);
+
+      store.getState().updateInstance({ slug: 'item-a', name: 'Updated A' } as SlugOnlyItem);
+      expect(store.getState().data!.get('item-a')).toEqual({ slug: 'item-a', name: 'Updated A' });
+
+      store.getState().deleteInstance({ slug: 'item-a' } as SlugOnlyItem);
+      expect(store.getState().data!.get('item-a')).toBeUndefined();
+    });
+
+    it('should patchList by slug', () => {
+      const store = getOrCreate('items_patch', {
+        axios: mockAxios as any,
+        route: '/items',
+        detailKey: 'slug',
+        actions: { getList: true },
+      });
+
+      store.getState().setList([
+        { slug: 'item-a', name: 'Item A' },
+        { slug: 'item-b', name: 'Item B' },
+      ]);
+
+      store.getState().patchList([{ slug: 'item-a', name: 'Patched A' }]);
+
+      expect(store.getState().data!.get('item-a')).toEqual({ slug: 'item-a', name: 'Patched A' });
+      expect(store.getState().data!.get('item-b')).toEqual({ slug: 'item-b', name: 'Item B' });
+    });
+
+    it('should updateList by slug and track new items for pagination', () => {
+      const store = getOrCreate('items_updateList', {
+        axios: mockAxios as any,
+        route: '/items',
+        detailKey: 'slug',
+        actions: { getList: true },
+        pagination: { limit: 10 },
+      });
+
+      store.getState().setList([{ slug: 'item-a', name: 'Item A' }]);
+      store.getState().setPagination({ count: 1 });
+
+      store.getState().updateList([
+        { slug: 'item-a', name: 'Updated A' }, // existing — no count bump
+        { slug: 'new-item', name: 'New Item' },  // new — count bumps
+      ]);
+
+      expect(store.getState().data!.get('item-a')).toEqual({ slug: 'item-a', name: 'Updated A' });
+      expect(store.getState().data!.get('new-item')).toEqual({ slug: 'new-item', name: 'New Item' });
+      expect(store.getState().pagination!.count).toBe(2);
+    });
+
+    it('should build detail route using slug field', () => {
+      const store = getOrCreate('items_route', {
+        axios: mockAxios as any,
+        route: '/items',
+        detailKey: 'slug',
+        actions: { get: true },
+      });
+
+      const routeFn = store.config.actions.get.route;
+      expect(typeof routeFn).toBe('function');
+      expect((routeFn as Function)({ slug: 'item-a' }, { args: undefined, params: undefined }))
+        .toBe('/items/item-a');
+    });
+
+    it('should auto-fetch with { slug: value } in useCrud(store, id)', async () => {
+      const mockAxiosFn = jest.fn().mockResolvedValueOnce({
+        data: { slug: 'item-a', name: 'Fetched' },
+      });
+      Object.assign(mockAxiosFn, mockAxios);
+
+      const store = getOrCreate('items_autofetch', {
+        axios: mockAxiosFn as any,
+        route: '/items',
+        detailKey: 'slug',
+        actions: { get: true, getList: true },
+      });
+
+      const { result } = renderHook(() => useCrud(store, 'item-a'));
+
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
+
+      // Should call API with route built from slug
+      expect(mockAxiosFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          url: '/items/item-a',
+        }),
+      );
+
+      // Instance stored by slug, lookup by slug works
+      expect(result.current.instance).toEqual({ slug: 'item-a', name: 'Fetched' });
+    });
+
+    it('should track slug value in loading state on update', async () => {
+      const mockAxiosFn = jest.fn().mockResolvedValueOnce({
+        data: { slug: 'item-a', name: 'Updated' },
+      });
+      Object.assign(mockAxiosFn, mockAxios);
+
+      const store = getOrCreate('items_loading', {
+        axios: mockAxiosFn as any,
+        route: '/items',
+        detailKey: 'slug',
+        actions: { update: true, getList: true },
+      });
+
+      store.getState().setList([{ slug: 'item-a', name: 'Original' }]);
+
+      const { result } = renderHook(() => useCrud(store));
+
+      await act(async () => {
+        await result.current.update({ slug: 'item-a', name: 'Updated' });
+      });
+
+      expect(result.current.update.id).toBe('item-a');
+    });
+
+    it('should track slug value in loading state on delete', async () => {
+      const mockAxiosFn = jest.fn().mockResolvedValueOnce({ data: {} });
+      Object.assign(mockAxiosFn, mockAxios);
+
+      const store = getOrCreate('items_delete_loading', {
+        axios: mockAxiosFn as any,
+        route: '/items',
+        detailKey: 'slug',
+        actions: { delete: true, getList: true },
+      });
+
+      store.getState().setList([{ slug: 'item-a', name: 'Item A' }]);
+
+      const { result } = renderHook(() => useCrud(store));
+
+      await act(async () => {
+        await result.current.delete({ slug: 'item-a' });
+      });
+
+      expect(result.current.delete.id).toBe('item-a');
+    });
+
+    it('should select/toggle/clear by slug', () => {
+      const store = getOrCreate('items_select', {
+        axios: mockAxios as any,
+        route: '/items',
+        detailKey: 'slug',
+        actions: { getList: true },
+        select: 'single',
+      });
+
+      const items: SlugOnlyItem[] = [
+        { slug: 'item-a', name: 'Item A' },
+        { slug: 'item-b', name: 'Item B' },
+      ];
+      store.getState().setList(items);
+
+      const { result } = renderHook(() => useCrud(store));
+
+      // Select by instance
+      act(() => { result.current.select(items[0]); });
+      expect(result.current.selected).toEqual(items[0]);
+      expect(store.getState().selectedIds).toEqual(['item-a']);
+
+      // Toggle off
+      act(() => { result.current.toggle(items[0]); });
+      expect(result.current.selected).toBeNull();
+
+      // Select by raw slug string
+      act(() => { result.current.select('item-b'); });
+      expect(result.current.selected).toEqual(items[1]);
+
+      act(() => { result.current.clear(); });
+      expect(result.current.selected).toBeNull();
+    });
+
+    it('should delete and clean up selectedIds by slug', () => {
+      const store = getOrCreate('items_delete_select', {
+        axios: mockAxios as any,
+        route: '/items',
+        detailKey: 'slug',
+        actions: { getList: true },
+        select: 'multiple',
+      });
+
+      store.getState().setList([
+        { slug: 'item-a', name: 'Item A' },
+        { slug: 'item-b', name: 'Item B' },
+      ]);
+      store.getState().setSelectedIds(['item-a', 'item-b']);
+
+      store.getState().deleteInstance({ slug: 'item-a' } as SlugOnlyItem);
+
+      expect(store.getState().selectedIds).toEqual(['item-b']);
+    });
+
+    it('should decrement pagination count on delete by slug', () => {
+      const store = getOrCreate('items_delete_pag', {
+        axios: mockAxios as any,
+        route: '/items',
+        detailKey: 'slug',
+        actions: { getList: true },
+        pagination: { limit: 10 },
+      });
+
+      store.getState().setList([
+        { slug: 'item-a', name: 'Item A' },
+        { slug: 'item-b', name: 'Item B' },
+      ]);
+      store.getState().setPagination({ count: 2 });
+
+      store.getState().deleteInstance({ slug: 'item-a' } as SlugOnlyItem);
+
+      expect(store.getState().data!.get('item-a')).toBeUndefined();
+      expect(store.getState().pagination!.count).toBe(1);
+    });
+  });
+
+  // ── Custom id (id: 'uuid', detailKey stays 'id') ─────────────────────
+  // Map keyed by uuid (stable). Routes use default 'id' (numeric).
+
+  describe('custom id (id: "uuid")', () => {
+    let getOrCreate: ReturnType<typeof createStoreRegistry<{ items: UuidKeyItem }>>;
+
+    beforeEach(() => {
+      getOrCreate = createStoreRegistry<{ items: UuidKeyItem }>();
+    });
+
+    it('should key store data by uuid, not by numeric id', () => {
       const store = getOrCreate('items', {
         axios: mockAxios as any,
         route: '/items',
@@ -56,16 +315,18 @@ describe('custom id and byKey', () => {
         actions: { getList: true },
       });
 
-      const items: UuidItem[] = [
-        { uuid: 'abc-123', name: 'Item A' },
-        { uuid: 'def-456', name: 'Item B' },
+      const items: UuidKeyItem[] = [
+        { id: 1, uuid: 'u1', name: 'Item A' },
+        { id: 2, uuid: 'u2', name: 'Item B' },
       ];
       store.getState().setList(items);
 
       const data = store.getState().data!;
-      expect(data.get('abc-123')).toEqual(items[0]);
-      expect(data.get('def-456')).toEqual(items[1]);
-      expect(data.get('0')).toBeUndefined();
+      expect(data.get('u1')).toEqual(items[0]);
+      expect(data.get('u2')).toEqual(items[1]);
+      // NOT keyed by numeric id
+      expect(data.get('1')).toBeUndefined();
+      expect(data.get('2')).toBeUndefined();
     });
 
     it('should setInstance/updateInstance/deleteInstance by uuid', () => {
@@ -76,15 +337,15 @@ describe('custom id and byKey', () => {
         actions: { get: true, create: true, update: true, delete: true },
       });
 
-      const item: UuidItem = { uuid: 'abc-123', name: 'Item A' };
+      const item: UuidKeyItem = { id: 1, uuid: 'u1', name: 'Item A' };
       store.getState().setInstance(item);
-      expect(store.getState().data!.get('abc-123')).toEqual(item);
+      expect(store.getState().data!.get('u1')).toEqual(item);
 
-      store.getState().updateInstance({ uuid: 'abc-123', name: 'Updated A' } as UuidItem);
-      expect(store.getState().data!.get('abc-123')).toEqual({ uuid: 'abc-123', name: 'Updated A' });
+      store.getState().updateInstance({ id: 1, uuid: 'u1', name: 'Updated A' });
+      expect(store.getState().data!.get('u1')!.name).toBe('Updated A');
 
-      store.getState().deleteInstance({ uuid: 'abc-123' } as UuidItem);
-      expect(store.getState().data!.get('abc-123')).toBeUndefined();
+      store.getState().deleteInstance({ id: 1, uuid: 'u1', name: '' });
+      expect(store.getState().data!.get('u1')).toBeUndefined();
     });
 
     it('should patchList by uuid', () => {
@@ -96,39 +357,17 @@ describe('custom id and byKey', () => {
       });
 
       store.getState().setList([
-        { uuid: 'abc-123', name: 'Item A' },
-        { uuid: 'def-456', name: 'Item B' },
+        { id: 1, uuid: 'u1', name: 'Item A' },
+        { id: 2, uuid: 'u2', name: 'Item B' },
       ]);
 
-      store.getState().patchList([{ uuid: 'abc-123', name: 'Patched A' }]);
+      store.getState().patchList([{ id: 1, uuid: 'u1', name: 'Patched A' }]);
 
-      expect(store.getState().data!.get('abc-123')).toEqual({ uuid: 'abc-123', name: 'Patched A' });
-      expect(store.getState().data!.get('def-456')).toEqual({ uuid: 'def-456', name: 'Item B' });
+      expect(store.getState().data!.get('u1')!.name).toBe('Patched A');
+      expect(store.getState().data!.get('u2')!.name).toBe('Item B');
     });
 
-    it('should updateList by uuid and track new items for pagination', () => {
-      const store = getOrCreate('items_updateList', {
-        axios: mockAxios as any,
-        route: '/items',
-        id: 'uuid',
-        actions: { getList: true },
-        pagination: { limit: 10 },
-      });
-
-      store.getState().setList([{ uuid: 'abc-123', name: 'Item A' }]);
-      store.getState().setPagination({ count: 1 });
-
-      store.getState().updateList([
-        { uuid: 'abc-123', name: 'Updated A' }, // existing — no count bump
-        { uuid: 'new-789', name: 'New Item' },  // new — count bumps
-      ]);
-
-      expect(store.getState().data!.get('abc-123')).toEqual({ uuid: 'abc-123', name: 'Updated A' });
-      expect(store.getState().data!.get('new-789')).toEqual({ uuid: 'new-789', name: 'New Item' });
-      expect(store.getState().pagination!.count).toBe(2);
-    });
-
-    it('should build detail route using uuid field', () => {
+    it('should still use detailKey field for detail routes, not uuid', () => {
       const store = getOrCreate('items_route', {
         axios: mockAxios as any,
         route: '/items',
@@ -137,260 +376,24 @@ describe('custom id and byKey', () => {
       });
 
       const routeFn = store.config.actions.get.route;
-      expect(typeof routeFn).toBe('function');
-      expect((routeFn as Function)({ uuid: 'abc-123' }, { args: undefined, params: undefined }))
-        .toBe('/items/abc-123');
-    });
-
-    it('should auto-fetch with { uuid: value } in useCrud(store, id)', async () => {
-      const mockAxiosFn = jest.fn().mockResolvedValueOnce({
-        data: { uuid: 'abc-123', name: 'Fetched' },
-      });
-      Object.assign(mockAxiosFn, mockAxios);
-
-      const store = getOrCreate('items_autofetch', {
-        axios: mockAxiosFn as any,
-        route: '/items',
-        id: 'uuid',
-        actions: { get: true, getList: true },
-      });
-
-      const { result } = renderHook(() => useCrud(store, 'abc-123'));
-
-      await act(async () => {
-        await new Promise((r) => setTimeout(r, 0));
-      });
-
-      // Should call API with route built from uuid
-      expect(mockAxiosFn).toHaveBeenCalledWith(
-        expect.objectContaining({
-          url: '/items/abc-123',
-        }),
-      );
-
-      // Instance stored by uuid, lookup by uuid works
-      expect(result.current.instance).toEqual({ uuid: 'abc-123', name: 'Fetched' });
-    });
-
-    it('should track uuid value in loading state on update', async () => {
-      const mockAxiosFn = jest.fn().mockResolvedValueOnce({
-        data: { uuid: 'abc-123', name: 'Updated' },
-      });
-      Object.assign(mockAxiosFn, mockAxios);
-
-      const store = getOrCreate('items_loading', {
-        axios: mockAxiosFn as any,
-        route: '/items',
-        id: 'uuid',
-        actions: { update: true, getList: true },
-      });
-
-      store.getState().setList([{ uuid: 'abc-123', name: 'Original' }]);
-
-      const { result } = renderHook(() => useCrud(store));
-
-      await act(async () => {
-        await result.current.update({ uuid: 'abc-123', name: 'Updated' });
-      });
-
-      expect(result.current.update.id).toBe('abc-123');
-    });
-
-    it('should track uuid value in loading state on delete', async () => {
-      const mockAxiosFn = jest.fn().mockResolvedValueOnce({ data: {} });
-      Object.assign(mockAxiosFn, mockAxios);
-
-      const store = getOrCreate('items_delete_loading', {
-        axios: mockAxiosFn as any,
-        route: '/items',
-        id: 'uuid',
-        actions: { delete: true, getList: true },
-      });
-
-      store.getState().setList([{ uuid: 'abc-123', name: 'Item A' }]);
-
-      const { result } = renderHook(() => useCrud(store));
-
-      await act(async () => {
-        await result.current.delete({ uuid: 'abc-123' });
-      });
-
-      expect(result.current.delete.id).toBe('abc-123');
-    });
-
-    it('should select/toggle/clear by uuid', () => {
-      const store = getOrCreate('items_select', {
-        axios: mockAxios as any,
-        route: '/items',
-        id: 'uuid',
-        actions: { getList: true },
-        select: 'single',
-      });
-
-      const items: UuidItem[] = [
-        { uuid: 'abc-123', name: 'Item A' },
-        { uuid: 'def-456', name: 'Item B' },
-      ];
-      store.getState().setList(items);
-
-      const { result } = renderHook(() => useCrud(store));
-
-      // Select by instance
-      act(() => { result.current.select(items[0]); });
-      expect(result.current.selected).toEqual(items[0]);
-      expect(store.getState().selectedIds).toEqual(['abc-123']);
-
-      // Toggle off
-      act(() => { result.current.toggle(items[0]); });
-      expect(result.current.selected).toBeNull();
-
-      // Select by raw uuid string
-      act(() => { result.current.select('def-456'); });
-      expect(result.current.selected).toEqual(items[1]);
-
-      act(() => { result.current.clear(); });
-      expect(result.current.selected).toBeNull();
-    });
-
-    it('should delete and clean up selectedIds by uuid', () => {
-      const store = getOrCreate('items_delete_select', {
-        axios: mockAxios as any,
-        route: '/items',
-        id: 'uuid',
-        actions: { getList: true },
-        select: 'multiple',
-      });
-
-      store.getState().setList([
-        { uuid: 'abc-123', name: 'Item A' },
-        { uuid: 'def-456', name: 'Item B' },
-      ]);
-      store.getState().setSelectedIds(['abc-123', 'def-456']);
-
-      store.getState().deleteInstance({ uuid: 'abc-123' } as UuidItem);
-
-      expect(store.getState().selectedIds).toEqual(['def-456']);
-    });
-
-    it('should decrement pagination count on delete by uuid', () => {
-      const store = getOrCreate('items_delete_pag', {
-        axios: mockAxios as any,
-        route: '/items',
-        id: 'uuid',
-        actions: { getList: true },
-        pagination: { limit: 10 },
-      });
-
-      store.getState().setList([
-        { uuid: 'abc-123', name: 'Item A' },
-        { uuid: 'def-456', name: 'Item B' },
-      ]);
-      store.getState().setPagination({ count: 2 });
-
-      store.getState().deleteInstance({ uuid: 'abc-123' } as UuidItem);
-
-      expect(store.getState().data!.get('abc-123')).toBeUndefined();
-      expect(store.getState().pagination!.count).toBe(1);
-    });
-  });
-
-  // ── Custom byKey (byKey: 'slug', id stays 'id') ────────────────────
-  // Map keyed by slug. Routes use id. Select resolves by slug.
-
-  describe('custom byKey (byKey: "slug")', () => {
-    let getOrCreate: ReturnType<typeof createStoreRegistry<{ items: SlugItem }>>;
-
-    beforeEach(() => {
-      getOrCreate = createStoreRegistry<{ items: SlugItem }>();
-    });
-
-    it('should key store data by slug, not by id', () => {
-      const store = getOrCreate('items', {
-        axios: mockAxios as any,
-        route: '/items',
-        byKey: 'slug',
-        actions: { getList: true },
-      });
-
-      const items: SlugItem[] = [
-        { id: 1, slug: 'item-a', name: 'Item A' },
-        { id: 2, slug: 'item-b', name: 'Item B' },
-      ];
-      store.getState().setList(items);
-
-      const data = store.getState().data!;
-      expect(data.get('item-a')).toEqual(items[0]);
-      expect(data.get('item-b')).toEqual(items[1]);
-      // NOT keyed by id
-      expect(data.get('1')).toBeUndefined();
-      expect(data.get('2')).toBeUndefined();
-    });
-
-    it('should setInstance/updateInstance/deleteInstance by slug', () => {
-      const store = getOrCreate('items_crud', {
-        axios: mockAxios as any,
-        route: '/items',
-        byKey: 'slug',
-        actions: { get: true, create: true, update: true, delete: true },
-      });
-
-      const item: SlugItem = { id: 1, slug: 'item-a', name: 'Item A' };
-      store.getState().setInstance(item);
-      expect(store.getState().data!.get('item-a')).toEqual(item);
-
-      store.getState().updateInstance({ id: 1, slug: 'item-a', name: 'Updated A' });
-      expect(store.getState().data!.get('item-a')!.name).toBe('Updated A');
-
-      store.getState().deleteInstance({ id: 1, slug: 'item-a', name: '' });
-      expect(store.getState().data!.get('item-a')).toBeUndefined();
-    });
-
-    it('should patchList by slug', () => {
-      const store = getOrCreate('items_patch', {
-        axios: mockAxios as any,
-        route: '/items',
-        byKey: 'slug',
-        actions: { getList: true },
-      });
-
-      store.getState().setList([
-        { id: 1, slug: 'item-a', name: 'Item A' },
-        { id: 2, slug: 'item-b', name: 'Item B' },
-      ]);
-
-      store.getState().patchList([{ id: 1, slug: 'item-a', name: 'Patched A' }]);
-
-      expect(store.getState().data!.get('item-a')!.name).toBe('Patched A');
-      expect(store.getState().data!.get('item-b')!.name).toBe('Item B');
-    });
-
-    it('should still use id field for detail routes, not slug', () => {
-      const store = getOrCreate('items_route', {
-        axios: mockAxios as any,
-        route: '/items',
-        byKey: 'slug',
-        actions: { get: true },
-      });
-
-      const routeFn = store.config.actions.get.route;
-      // Route uses config.id ('id' by default), not byKey
-      expect((routeFn as Function)({ id: 42, slug: 'item-a' }, { args: undefined, params: undefined }))
+      // Route uses config.detailKey ('id' by default), not config.id ('uuid')
+      expect((routeFn as Function)({ id: 42, uuid: 'u1' }, { args: undefined, params: undefined }))
         .toBe('/items/42');
     });
 
-    it('should select/toggle by slug', () => {
+    it('should select/toggle by uuid', () => {
       const store = getOrCreate('items_select', {
         axios: mockAxios as any,
         route: '/items',
-        byKey: 'slug',
+        id: 'uuid',
         actions: { getList: true },
         select: 'multiple',
       });
 
-      const items: SlugItem[] = [
-        { id: 1, slug: 'item-a', name: 'Item A' },
-        { id: 2, slug: 'item-b', name: 'Item B' },
-        { id: 3, slug: 'item-c', name: 'Item C' },
+      const items: UuidKeyItem[] = [
+        { id: 1, uuid: 'u1', name: 'Item A' },
+        { id: 2, uuid: 'u2', name: 'Item B' },
+        { id: 3, uuid: 'u3', name: 'Item C' },
       ];
       store.getState().setList(items);
 
@@ -399,120 +402,121 @@ describe('custom id and byKey', () => {
       act(() => { result.current.toggle(items[0]); });
       act(() => { result.current.toggle(items[2]); });
       expect(result.current.selected).toEqual([items[0], items[2]]);
-      expect(store.getState().selectedIds).toEqual(['item-a', 'item-c']);
+      expect(store.getState().selectedIds).toEqual(['u1', 'u3']);
 
-      // Select by raw slug string
+      // Select by raw uuid string
       act(() => { result.current.clear(); });
-      act(() => { result.current.select('item-b'); });
-      expect(store.getState().selectedIds).toEqual(['item-b']);
+      act(() => { result.current.select('u2'); });
+      expect(store.getState().selectedIds).toEqual(['u2']);
     });
 
-    it('should delete by slug and clean up selectedIds', () => {
+    it('should delete by uuid and clean up selectedIds', () => {
       const store = getOrCreate('items_delete_select', {
         axios: mockAxios as any,
         route: '/items',
-        byKey: 'slug',
+        id: 'uuid',
         actions: { getList: true },
         select: 'multiple',
       });
 
       store.getState().setList([
-        { id: 1, slug: 'item-a', name: 'Item A' },
-        { id: 2, slug: 'item-b', name: 'Item B' },
+        { id: 1, uuid: 'u1', name: 'Item A' },
+        { id: 2, uuid: 'u2', name: 'Item B' },
       ]);
-      store.getState().setSelectedIds(['item-a', 'item-b']);
+      store.getState().setSelectedIds(['u1', 'u2']);
 
-      store.getState().deleteInstance({ id: 1, slug: 'item-a', name: '' });
+      store.getState().deleteInstance({ id: 1, uuid: 'u1', name: '' });
 
-      expect(store.getState().data!.get('item-a')).toBeUndefined();
-      expect(store.getState().selectedIds).toEqual(['item-b']);
+      expect(store.getState().data!.get('u1')).toBeUndefined();
+      expect(store.getState().selectedIds).toEqual(['u2']);
     });
 
-    describe('useCrud lookup when byKey !== id', () => {
-      // The Map is keyed by slug. useCrud(store, value) does data.get(String(value)).
-      // The caller must pass the byKey value (slug), not the numeric id.
+    describe('useCrud lookup when id !== detailKey', () => {
+      // The Map is keyed by uuid (config.id). useCrud(store, value) does data.get(String(value)).
+      // The caller must pass the id value (uuid), not the numeric detailKey.
 
-      it('should find instance when passing slug (byKey value)', () => {
+      it('should find instance when passing uuid (id value)', () => {
         const store = getOrCreate('items_lookup_ok', {
           axios: mockAxios as any,
           route: '/items',
-          byKey: 'slug',
+          id: 'uuid',
           actions: { get: true, getList: true },
         });
 
-        store.getState().setList([{ id: 1, slug: 'item-a', name: 'Item A' }]);
+        store.getState().setList([{ id: 1, uuid: 'u1', name: 'Item A' }]);
 
-        const { result } = renderHook(() => useCrud(store, 'item-a'));
+        const { result } = renderHook(() => useCrud(store, 'u1'));
 
-        expect(result.current.instance).toEqual({ id: 1, slug: 'item-a', name: 'Item A' });
+        expect(result.current.instance).toEqual({ id: 1, uuid: 'u1', name: 'Item A' });
       });
 
-      it('should NOT find instance when passing numeric id (Map keyed by slug)', () => {
+      it('should NOT find instance when passing numeric id (Map keyed by uuid)', () => {
         const store = getOrCreate('items_lookup_fail', {
           axios: mockAxios as any,
           route: '/items',
-          byKey: 'slug',
+          id: 'uuid',
           actions: { get: true, getList: true },
         });
 
-        store.getState().setList([{ id: 1, slug: 'item-a', name: 'Item A' }]);
+        store.getState().setList([{ id: 1, uuid: 'u1', name: 'Item A' }]);
 
-        // Passing numeric id — lookup fails
+        // Passing numeric id — lookup fails because Map is keyed by uuid
         const { result } = renderHook(() => useCrud(store, 1));
 
         expect(result.current.instance).toBeNull();
       });
 
-      it('should auto-fetch sends { id: slug } when byKey !== id (design issue)', async () => {
-        // When byKey: 'slug' and id: 'id' (default), useCrud(store, 'item-a')
-        // auto-fetches with { id: 'item-a' } — the API field is 'id' but the
-        // value is the slug. This is a known design limitation when byKey !== id:
+      it('auto-fetch sends { id: uuid } when id !== detailKey (design limitation)', async () => {
+        // When id: 'uuid' and detailKey: 'id' (default), useCrud(store, 'u1')
+        // auto-fetches with { id: 'u1' } — the API field is 'id' but the
+        // value is the uuid. This is a known design limitation when id !== detailKey:
         // the single parameter can't serve both Map lookup and API request.
 
         const mockAxiosFn = jest.fn().mockResolvedValueOnce({
-          data: { id: 1, slug: 'item-a', name: 'Fetched' },
+          data: { id: 1, uuid: 'u1', name: 'Fetched' },
         });
         Object.assign(mockAxiosFn, mockAxios);
 
-        const store = getOrCreate('items_autofetch_slug', {
+        const store = getOrCreate('items_autofetch_uuid', {
           axios: mockAxiosFn as any,
           route: '/items',
-          byKey: 'slug',
+          id: 'uuid',
           actions: { get: true, getList: true },
         });
 
-        renderHook(() => useCrud(store, 'item-a'));
+        renderHook(() => useCrud(store, 'u1'));
 
         await act(async () => {
           await new Promise((r) => setTimeout(r, 0));
         });
 
-        // Auto-fetch sends { id: 'item-a' } — 'id' is config.id, value is the slug
+        // Auto-fetch sends { id: 'u1' } — 'id' is config.detailKey, value is the uuid
         expect(mockAxiosFn).toHaveBeenCalledWith(
           expect.objectContaining({
-            url: '/items/item-a',
+            url: '/items/u1',
           }),
         );
       });
     });
   });
 
-  // ── Both different (id: 'uuid', byKey: 'slug') ─────────────────────
-  // Routes use uuid. Store keyed by slug. Loading state tracks uuid.
+  // ── Both different (detailKey: 'slug', id: 'uuid') ────────────────────
+  // Routes use slug (what's in the URL). Store keyed by uuid (stable).
+  // Loading state tracks slug value (config.detailKey).
 
-  describe('both id and byKey different (id: "uuid", byKey: "slug")', () => {
+  describe('both detailKey and id different (detailKey: "slug", id: "uuid")', () => {
     let getOrCreate: ReturnType<typeof createStoreRegistry<{ items: DualKeyItem }>>;
 
     beforeEach(() => {
       getOrCreate = createStoreRegistry<{ items: DualKeyItem }>();
     });
 
-    it('should key store by slug, build detail route with uuid', () => {
+    it('should key store by uuid, build detail route with slug', () => {
       const store = getOrCreate('items', {
         axios: mockAxios as any,
         route: '/items',
+        detailKey: 'slug',
         id: 'uuid',
-        byKey: 'slug',
         actions: { get: true, getList: true },
       });
 
@@ -522,17 +526,17 @@ describe('custom id and byKey', () => {
       ];
       store.getState().setList(items);
 
-      // Store keyed by slug
-      expect(store.getState().data!.get('item-a')).toEqual(items[0]);
-      expect(store.getState().data!.get('u1')).toBeUndefined();
+      // Store keyed by uuid (config.id)
+      expect(store.getState().data!.get('u1')).toEqual(items[0]);
+      expect(store.getState().data!.get('item-a')).toBeUndefined();
 
-      // Route uses uuid
+      // Route uses slug (config.detailKey)
       const routeFn = store.config.actions.get.route;
       expect((routeFn as Function)({ uuid: 'u1', slug: 'item-a' }, { args: undefined, params: undefined }))
-        .toBe('/items/u1');
+        .toBe('/items/item-a');
     });
 
-    it('should track uuid in loading state on update', async () => {
+    it('should track slug in loading state on update', async () => {
       const mockAxiosFn = jest.fn().mockResolvedValueOnce({
         data: { uuid: 'u1', slug: 'item-a', name: 'Updated' },
       });
@@ -541,8 +545,8 @@ describe('custom id and byKey', () => {
       const store = getOrCreate('items_loading', {
         axios: mockAxiosFn as any,
         route: '/items',
+        detailKey: 'slug',
         id: 'uuid',
-        byKey: 'slug',
         actions: { update: true, getList: true },
       });
 
@@ -554,19 +558,19 @@ describe('custom id and byKey', () => {
         await result.current.update({ uuid: 'u1', slug: 'item-a', name: 'Updated' });
       });
 
-      // Loading state id is uuid (config.id), not slug (byKey)
-      expect(result.current.update.id).toBe('u1');
+      // Loading state id is slug (config.detailKey), not uuid (config.id)
+      expect(result.current.update.id).toBe('item-a');
     });
 
-    it('should track uuid in loading state on delete', async () => {
+    it('should track slug in loading state on delete', async () => {
       const mockAxiosFn = jest.fn().mockResolvedValueOnce({ data: {} });
       Object.assign(mockAxiosFn, mockAxios);
 
       const store = getOrCreate('items_delete_loading', {
         axios: mockAxiosFn as any,
         route: '/items',
+        detailKey: 'slug',
         id: 'uuid',
-        byKey: 'slug',
         actions: { delete: true, getList: true },
       });
 
@@ -578,15 +582,15 @@ describe('custom id and byKey', () => {
         await result.current.delete({ uuid: 'u1', slug: 'item-a' });
       });
 
-      expect(result.current.delete.id).toBe('u1');
+      expect(result.current.delete.id).toBe('item-a');
     });
 
-    it('should select by slug (byKey), not uuid', () => {
+    it('should select by uuid (config.id), not slug', () => {
       const store = getOrCreate('items_select', {
         axios: mockAxios as any,
         route: '/items',
+        detailKey: 'slug',
         id: 'uuid',
-        byKey: 'slug',
         actions: { getList: true },
         select: 'single',
       });
@@ -601,18 +605,18 @@ describe('custom id and byKey', () => {
 
       act(() => { result.current.select(items[0]); });
       expect(result.current.selected).toEqual(items[0]);
-      expect(store.getState().selectedIds).toEqual(['item-a']); // slug, not uuid
+      expect(store.getState().selectedIds).toEqual(['u1']); // uuid, not slug
 
-      act(() => { result.current.select('item-b'); });
+      act(() => { result.current.select('u2'); });
       expect(result.current.selected).toEqual(items[1]);
     });
 
-    it('should delete by slug and clean up selectedIds by slug', () => {
+    it('should delete by uuid and clean up selectedIds by uuid', () => {
       const store = getOrCreate('items_delete_select', {
         axios: mockAxios as any,
         route: '/items',
+        detailKey: 'slug',
         id: 'uuid',
-        byKey: 'slug',
         actions: { getList: true },
         select: 'multiple',
       });
@@ -621,52 +625,52 @@ describe('custom id and byKey', () => {
         { uuid: 'u1', slug: 'item-a', name: 'Item A' },
         { uuid: 'u2', slug: 'item-b', name: 'Item B' },
       ]);
-      store.getState().setSelectedIds(['item-a', 'item-b']);
+      store.getState().setSelectedIds(['u1', 'u2']);
 
       store.getState().deleteInstance({ uuid: 'u1', slug: 'item-a', name: '' });
 
-      expect(store.getState().data!.get('item-a')).toBeUndefined();
-      expect(store.getState().selectedIds).toEqual(['item-b']);
+      expect(store.getState().data!.get('u1')).toBeUndefined();
+      expect(store.getState().selectedIds).toEqual(['u2']);
     });
 
-    it('useCrud(store, slug) should find instance (Map keyed by slug)', () => {
+    it('useCrud(store, uuid) should find instance (Map keyed by uuid)', () => {
       const store = getOrCreate('items_lookup_ok', {
         axios: mockAxios as any,
         route: '/items',
+        detailKey: 'slug',
         id: 'uuid',
-        byKey: 'slug',
         actions: { get: true, getList: true },
       });
 
       store.getState().setList([{ uuid: 'u1', slug: 'item-a', name: 'Item A' }]);
 
-      // Must pass slug for Map lookup to work
-      const { result } = renderHook(() => useCrud(store, 'item-a'));
+      // Must pass uuid for Map lookup to work
+      const { result } = renderHook(() => useCrud(store, 'u1'));
       expect(result.current.instance).toEqual({ uuid: 'u1', slug: 'item-a', name: 'Item A' });
     });
 
-    it('useCrud(store, uuid) should NOT find instance (Map keyed by slug)', () => {
+    it('useCrud(store, slug) should NOT find instance (Map keyed by uuid)', () => {
       const store = getOrCreate('items_lookup_fail', {
         axios: mockAxios as any,
         route: '/items',
+        detailKey: 'slug',
         id: 'uuid',
-        byKey: 'slug',
         actions: { get: true, getList: true },
       });
 
       store.getState().setList([{ uuid: 'u1', slug: 'item-a', name: 'Item A' }]);
 
-      // Passing uuid — lookup fails because Map is keyed by slug
-      const { result } = renderHook(() => useCrud(store, 'u1'));
+      // Passing slug — lookup fails because Map is keyed by uuid
+      const { result } = renderHook(() => useCrud(store, 'item-a'));
       expect(result.current.instance).toBeNull();
     });
 
-    it('auto-fetch sends { uuid: slug } — value mismatch when byKey !== id', async () => {
-      // When id: 'uuid' and byKey: 'slug', useCrud(store, 'item-a') auto-fetches
-      // with { uuid: 'item-a' }. The API field name ('uuid') is correct,
-      // but the value ('item-a') is the slug, not the actual uuid.
-      // This is a fundamental limitation: the single id parameter can't serve
-      // both Map lookup (needs slug) and API request (needs uuid).
+    it('auto-fetch sends { slug: uuid } — value mismatch when id !== detailKey', async () => {
+      // When detailKey: 'slug' and id: 'uuid', useCrud(store, 'u1') auto-fetches
+      // with { slug: 'u1' }. The API field name ('slug') is correct,
+      // but the value ('u1') is the uuid, not the actual slug.
+      // This is a fundamental limitation: the single parameter can't serve
+      // both Map lookup (needs uuid) and API request (needs slug).
 
       const mockAxiosFn = jest.fn().mockResolvedValueOnce({
         data: { uuid: 'u1', slug: 'item-a', name: 'Fetched' },
@@ -676,23 +680,287 @@ describe('custom id and byKey', () => {
       const store = getOrCreate('items_autofetch', {
         axios: mockAxiosFn as any,
         route: '/items',
+        detailKey: 'slug',
         id: 'uuid',
-        byKey: 'slug',
         actions: { get: true, getList: true },
       });
 
-      renderHook(() => useCrud(store, 'item-a'));
+      renderHook(() => useCrud(store, 'u1'));
 
       await act(async () => {
         await new Promise((r) => setTimeout(r, 0));
       });
 
-      // The route receives slug value in the uuid position
+      // The route receives uuid value in the slug position
       expect(mockAxiosFn).toHaveBeenCalledWith(
         expect.objectContaining({
-          url: '/items/item-a', // 'item-a' is slug, not a uuid
+          url: '/items/u1', // 'u1' is uuid, not a slug
         }),
       );
+    });
+  });
+
+  // ── Update with original (slug rename) ──────────────────────────────
+  // When detailKey is mutable (slug), update route should use the OLD
+  // value from the Map, not the new value from the update payload.
+
+  describe('update with original (slug rename)', () => {
+    // Type with both stable id and mutable slug
+    interface SlugIdItem {
+      id: number;
+      slug: string;
+      name: string;
+    }
+
+    const makeMockAxios = (response: any) => {
+      const fn = jest.fn().mockResolvedValueOnce({ data: response });
+      Object.assign(fn, mockAxios);
+      return fn as any;
+    };
+
+    describe('basic: detailKey: "slug", id: "id" (mutable detailKey, stable Map key)', () => {
+      it('update route uses old slug when slug changes', async () => {
+        const mockAxiosFn = makeMockAxios({ id: 42, slug: 'new-slug', name: 'New' });
+
+        const getOrCreate = createStoreRegistry<{ items: SlugIdItem }>();
+        const store = getOrCreate('items_update_rename', {
+          axios: mockAxiosFn,
+          route: '/items',
+          detailKey: 'slug',
+          id: 'id',
+          actions: { update: true, getList: true },
+        });
+
+        store.getState().setList([{ id: 42, slug: 'old-slug', name: 'Old' }]);
+
+        const { result } = renderHook(() => useCrud(store));
+
+        await act(async () => {
+          await result.current.update({ id: 42, slug: 'new-slug', name: 'New' });
+        });
+
+        // Route uses OLD slug from the Map instance
+        expect(mockAxiosFn).toHaveBeenCalledWith(
+          expect.objectContaining({
+            url: '/items/old-slug',
+          }),
+        );
+        // Body contains the NEW slug
+        expect(mockAxiosFn).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: { id: 42, slug: 'new-slug', name: 'New' },
+          }),
+        );
+      });
+
+      it('update stores response by id (Map key), not slug', async () => {
+        const mockAxiosFn = makeMockAxios({ id: 42, slug: 'new-slug', name: 'New' });
+
+        const getOrCreate = createStoreRegistry<{ items: SlugIdItem }>();
+        const store = getOrCreate('items_update_store', {
+          axios: mockAxiosFn,
+          route: '/items',
+          detailKey: 'slug',
+          id: 'id',
+          actions: { update: true, getList: true },
+        });
+
+        store.getState().setList([{ id: 42, slug: 'old-slug', name: 'Old' }]);
+
+        const { result } = renderHook(() => useCrud(store));
+
+        await act(async () => {
+          await result.current.update({ id: 42, slug: 'new-slug', name: 'New' });
+        });
+
+        // Stored by id (Map key)
+        expect(store.getState().data!.get('42')).toEqual({ id: 42, slug: 'new-slug', name: 'New' });
+        // NOT stored by slug
+        expect(store.getState().data!.get('old-slug')).toBeUndefined();
+        expect(store.getState().data!.get('new-slug')).toBeUndefined();
+      });
+
+      it('update with no slug change — route uses current slug', async () => {
+        const mockAxiosFn = makeMockAxios({ id: 42, slug: 'my-slug', name: 'New' });
+
+        const getOrCreate = createStoreRegistry<{ items: SlugIdItem }>();
+        const store = getOrCreate('items_update_same', {
+          axios: mockAxiosFn,
+          route: '/items',
+          detailKey: 'slug',
+          id: 'id',
+          actions: { update: true, getList: true },
+        });
+
+        store.getState().setList([{ id: 42, slug: 'my-slug', name: 'Old' }]);
+
+        const { result } = renderHook(() => useCrud(store));
+
+        await act(async () => {
+          await result.current.update({ id: 42, slug: 'my-slug', name: 'New' });
+        });
+
+        expect(mockAxiosFn).toHaveBeenCalledWith(
+          expect.objectContaining({ url: '/items/my-slug' }),
+        );
+      });
+
+      it('update when instance not in Map — falls back to data', async () => {
+        const mockAxiosFn = makeMockAxios({ id: 99, slug: 'new-item', name: 'New' });
+
+        const getOrCreate = createStoreRegistry<{ items: SlugIdItem }>();
+        const store = getOrCreate('items_update_missing', {
+          axios: mockAxiosFn,
+          route: '/items',
+          detailKey: 'slug',
+          id: 'id',
+          actions: { update: true, getList: true },
+        });
+
+        // Map is empty — no original to find
+        const { result } = renderHook(() => useCrud(store));
+
+        await act(async () => {
+          await result.current.update({ id: 99, slug: 'new-item', name: 'New' });
+        });
+
+        // Falls back to data — uses new slug in route
+        expect(mockAxiosFn).toHaveBeenCalledWith(
+          expect.objectContaining({ url: '/items/new-item' }),
+        );
+      });
+    });
+
+    describe('edge case: detailKey === id (detailKey: "slug", id defaults to "slug")', () => {
+      it('update route uses data directly — cannot find original after slug change', async () => {
+        const mockAxiosFn = makeMockAxios({ slug: 'new-slug', name: 'New' });
+
+        const getOrCreate = createStoreRegistry<{ items: SlugOnlyItem }>();
+        const store = getOrCreate('items_update_same_key', {
+          axios: mockAxiosFn,
+          route: '/items',
+          detailKey: 'slug',
+          // id defaults to 'slug' — Map keyed by slug
+          actions: { update: true, getList: true },
+        });
+
+        store.getState().setList([{ slug: 'old-slug', name: 'Old' }]);
+
+        const { result } = renderHook(() => useCrud(store));
+
+        await act(async () => {
+          await result.current.update({ slug: 'new-slug', name: 'New' });
+        });
+
+        // Map is keyed by slug. Lookup: data.get('new-slug') → undefined (Map has 'old-slug').
+        // Original not found — route uses data (new slug).
+        // This is expected when using a mutable field as both Map key and route key.
+        expect(mockAxiosFn).toHaveBeenCalledWith(
+          expect.objectContaining({ url: '/items/new-slug' }),
+        );
+      });
+    });
+
+    describe('edge case: function route', () => {
+      it('function route receives data as first arg, original in options', async () => {
+        const routeFn = jest.fn(
+          (data: any, { original }: any) => `/items/${original?.slug ?? data.slug}`
+        );
+        const mockAxiosFn = makeMockAxios({ id: 42, slug: 'new-slug', name: 'New' });
+
+        const getOrCreate = createStoreRegistry<{ items: SlugIdItem }>();
+        const store = getOrCreate('items_update_fn_route', {
+          axios: mockAxiosFn,
+          route: '/items',
+          detailKey: 'slug',
+          id: 'id',
+          actions: { update: { route: routeFn } },
+        });
+
+        store.getState().setList([{ id: 42, slug: 'old-slug', name: 'Old' }]);
+
+        const { result } = renderHook(() => useCrud(store));
+
+        await act(async () => {
+          await result.current.update({ id: 42, slug: 'new-slug', name: 'New' });
+        });
+
+        // First arg is data (new values)
+        expect(routeFn.mock.calls[0][0]).toEqual({ id: 42, slug: 'new-slug', name: 'New' });
+        // Second arg options contains original (old instance)
+        expect(routeFn.mock.calls[0][1].original).toEqual({ id: 42, slug: 'old-slug', name: 'Old' });
+        // args and params are still passed through
+        expect(routeFn.mock.calls[0][1]).toHaveProperty('args');
+        expect(routeFn.mock.calls[0][1]).toHaveProperty('params');
+        // URL built by the user's function using original
+        expect(mockAxiosFn).toHaveBeenCalledWith(
+          expect.objectContaining({ url: '/items/old-slug' }),
+        );
+      });
+
+      it('function route without using original — works like before', async () => {
+        const routeFn = jest.fn((data: any) => `/items/${data.slug}`);
+        const mockAxiosFn = makeMockAxios({ id: 42, slug: 'new-slug', name: 'New' });
+
+        const getOrCreate = createStoreRegistry<{ items: SlugIdItem }>();
+        const store = getOrCreate('items_update_fn_no_orig', {
+          axios: mockAxiosFn,
+          route: '/items',
+          detailKey: 'slug',
+          id: 'id',
+          actions: { update: { route: routeFn } },
+        });
+
+        store.getState().setList([{ id: 42, slug: 'old-slug', name: 'Old' }]);
+
+        const { result } = renderHook(() => useCrud(store));
+
+        await act(async () => {
+          await result.current.update({ id: 42, slug: 'new-slug', name: 'New' });
+        });
+
+        // User's function uses data.slug (new value) — their choice
+        expect(mockAxiosFn).toHaveBeenCalledWith(
+          expect.objectContaining({ url: '/items/new-slug' }),
+        );
+      });
+    });
+
+    describe('edge case: prepare + original', () => {
+      it('prepare transforms body but string route still uses original', async () => {
+        const mockAxiosFn = makeMockAxios({ id: 42, slug: 'new-slug', name: 'New' });
+
+        const getOrCreate = createStoreRegistry<{ items: SlugIdItem }>();
+        const store = getOrCreate('items_update_prepare', {
+          axios: mockAxiosFn,
+          route: '/items',
+          detailKey: 'slug',
+          id: 'id',
+          actions: {
+            update: {
+              prepare: (data: any) => ({ name: data.name }),
+            },
+            getList: true,
+          },
+        });
+
+        store.getState().setList([{ id: 42, slug: 'old-slug', name: 'Old' }]);
+
+        const { result } = renderHook(() => useCrud(store));
+
+        await act(async () => {
+          await result.current.update({ id: 42, slug: 'new-slug', name: 'New' });
+        });
+
+        // String route uses original (old slug)
+        expect(mockAxiosFn).toHaveBeenCalledWith(
+          expect.objectContaining({ url: '/items/old-slug' }),
+        );
+        // Body uses prepare(data) — slug stripped
+        expect(mockAxiosFn).toHaveBeenCalledWith(
+          expect.objectContaining({ data: { name: 'New' } }),
+        );
+      });
     });
   });
 });

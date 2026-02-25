@@ -2,10 +2,10 @@ import { useCallback, useMemo } from "react";
 import type { CrudStore } from "./createStoreRegistry";
 import type { Config, ValidatedConfig } from "./config";
 
-export const toId = <T>(instanceOrId: T | string | number, byKey: string): string =>
+export const toId = <T>(instanceOrId: T | string | number, id: string): string =>
   typeof instanceOrId === 'string' || typeof instanceOrId === 'number'
     ? String(instanceOrId)
-    : String((instanceOrId as Record<string, unknown>)[byKey]);
+    : String((instanceOrId as Record<string, unknown>)[id]);
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -40,7 +40,7 @@ export type MultipleSelectResult<T> = {
 export function useSelectBase<T, K extends string, C extends Config<K, T>>(
   store: CrudStore<T, K, C, ValidatedConfig<K, T, C>>
 ): SelectResultBase<T> {
-  const { byKey } = store.config;
+  const { id } = store.config;
   const selectMode = store.config.select;
 
   const data = store((s) => s.data);
@@ -58,15 +58,15 @@ export function useSelectBase<T, K extends string, C extends Config<K, T>>(
   const select = useCallback(
     (instanceOrId: T | string | number | null) => {
       store.getState().setSelectedIds(
-        instanceOrId !== null ? [toId(instanceOrId, byKey)] : []
+        instanceOrId !== null ? [toId(instanceOrId, id)] : []
       );
     },
-    [store, byKey]
+    [store, id]
   );
 
   const toggle = useCallback(
     (instanceOrId: T | string | number) => {
-      const toggleId = toId(instanceOrId, byKey);
+      const toggleId = toId(instanceOrId, id);
       const current = store.getState().selectedIds;
 
       if (selectMode === 'single') {
@@ -81,7 +81,7 @@ export function useSelectBase<T, K extends string, C extends Config<K, T>>(
         );
       }
     },
-    [store, byKey, selectMode]
+    [store, id, selectMode]
   );
 
   const clear = useCallback(

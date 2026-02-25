@@ -9,6 +9,7 @@ export type DetailRoute = string | ((instance: any, { args,
 export type RouteOptions = {
   args?: any;
   params?: any;
+  original?: any;
 };
 export type Route = string | ((data: any, { args, 
    params }: RouteOptions) => string);
@@ -116,9 +117,9 @@ export type Actions<T> = {
 
 export type BaseConfig<T> = {
   actions?: Actions<T>;
-  id?: string;
+  detailKey?: string;
   parseIdToInt?: boolean;
-  byKey?: string;
+  id?: string;
   state?: State<T>;
   route: Route;
   customActions?: CustomActions<T>;
@@ -159,8 +160,8 @@ type ActionConfigIfExists<
       : never;
 
 export type ValidatedConfig<K extends string, T, TConfig extends Config<K, T>> = Prettify<{
+  detailKey: string;
   id: string;
-  byKey: string;
   parseIdToInt: boolean;
   state: {
     [K in keyof TConfig['state']]: TConfig['state'][K];
@@ -180,20 +181,21 @@ export type ValidatedConfig<K extends string, T, TConfig extends Config<K, T>> =
   pagination: PaginationConfig | null;
 }>
 
-export const getDetailRoute = (route: Route | null, id: string) => (
+export const getDetailRoute = (route: Route | null, detailKey: string) => (
   typeof route === 'function'
     ? route
-    : (data: any) =>
-      // To do: assertions for data, route and id
-      `${
-        route
-      }${
-        route && route.endsWith('/') ? '' : '/'
-      }${
-        typeof data === 'object' ? data[id] : data
-      }${
-        route && route.endsWith('/') ? '/' : ''
-      }`
+    : (data: any, options?: RouteOptions) => {
+        const source = options?.original || data;
+        return `${
+          route
+        }${
+          route && route.endsWith('/') ? '' : '/'
+        }${
+          typeof source === 'object' ? source[detailKey] : source
+        }${
+          route && route.endsWith('/') ? '/' : ''
+        }`;
+      }
 );
 
 export const validateConfig = <
@@ -204,11 +206,11 @@ export const validateConfig = <
   config: C
 ): ValidatedConfig<K, T, C> => {
   const {
-    // The id to use when perform crud actions
-    id = 'id',
+    // The field used in detail routes (get, update, delete)
+    detailKey = 'id',
     parseIdToInt = false,
-    // The key to sort by in the state
-    byKey = null,
+    // The field used to key the internal Map (defaults to detailKey)
+    id = null,
     state,
     route,
     customActions = {},
@@ -231,11 +233,11 @@ export const validateConfig = <
       ...config.actions ? config.actions : {},
     } as const;
 
-  const detailRoute = getDetailRoute(route, id);
+  const detailRoute = getDetailRoute(route, detailKey);
 
   const newConfig = {
-    id,
-    byKey: byKey ? byKey : id,
+    detailKey,
+    id: id ? id : detailKey,
     parseIdToInt,
     state: (state || {}) as { [K in keyof C['state']]: C['state'][K] },
     axios: config.axios,
@@ -331,8 +333,8 @@ export const validateConfig = <
 
 // This type is only used for creating confitional actions in the hook.
 export type ValidConfig<T> = {
-  id: string;
-  byKey: string | null;
+  detailKey: string;
+  id: string | null;
   parseIdToInt: boolean;
   state: State<T>;
   axios: AxiosInstance;

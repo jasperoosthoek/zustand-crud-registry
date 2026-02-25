@@ -22,8 +22,8 @@ export function useGet<T, K extends string, C extends Config<K, T>>(
 
   const get = useCallback(() => {
     if (stringId == null || !actionGet) return;
-    const idField = store.config.id;
-    actionGet({ [idField]: id });
+    const detailKeyField = store.config.detailKey;
+    actionGet({ [detailKeyField]: id });
   }, [stringId, actionGet, store, id]);
 
   // Attach loading state from the action

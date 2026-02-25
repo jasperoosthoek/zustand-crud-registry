@@ -94,7 +94,7 @@ export function useCrud<
     if (state.data?.get(stringId)) return;
     if (state.loadingState['get']?.isLoading) return;
     if (state.loadingState['get']?.error) return;
-    actionGet({ [store.config.id]: id });
+    actionGet({ [store.config.detailKey]: id });
   }, [stringId, actionGet, store, id]);
 
   // Pagination — stable refs, no extra re-renders when unchanged

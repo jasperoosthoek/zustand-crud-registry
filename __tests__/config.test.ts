@@ -26,8 +26,8 @@ describe('config', () => {
 
       const validated = validateConfig<'users', TestUser, typeof config>(config);
 
+      expect(validated.detailKey).toBe('id');
       expect(validated.id).toBe('id');
-      expect(validated.byKey).toBe('id');
       expect(validated.parseIdToInt).toBe(false);
       expect(validated.state).toEqual({});
       expect(validated.axios).toBe(mockAxios);
@@ -42,8 +42,8 @@ describe('config', () => {
       const config = {
         axios: mockAxios,
         route: '/users',
+        detailKey: 'userId',
         id: 'userId',
-        byKey: 'userId',
         parseIdToInt: true,
         state: { selectedId: null },
         onError: mockOnError,
@@ -52,8 +52,8 @@ describe('config', () => {
 
       const validated = validateConfig<'users', TestUser, typeof config>(config);
 
+      expect(validated.detailKey).toBe('userId');
       expect(validated.id).toBe('userId');
-      expect(validated.byKey).toBe('userId');
       expect(validated.parseIdToInt).toBe(true);
       expect(validated.state).toEqual({ selectedId: null });
       expect(validated.onError).toBe(mockOnError);
@@ -148,25 +148,25 @@ describe('config', () => {
       });
     });
 
-    it('should use byKey when provided, fallback to id', () => {
-      const configWithByKey = {
+    it('should use id when provided, fallback to detailKey', () => {
+      const configWithId = {
         axios: mockAxios,
         route: '/users',
-        id: 'userId',
-        byKey: 'email',
+        detailKey: 'userId',
+        id: 'email',
       };
 
-      const validated = validateConfig<'users', TestUser, typeof configWithByKey>(configWithByKey);
-      expect(validated.byKey).toBe('email');
+      const validated = validateConfig<'users', TestUser, typeof configWithId>(configWithId);
+      expect(validated.id).toBe('email');
 
-      const configWithoutByKey = {
+      const configWithoutId = {
         axios: mockAxios,
         route: '/users',
-        id: 'userId',
+        detailKey: 'userId',
       };
 
-      const validated2 = validateConfig<'users', TestUser, typeof configWithoutByKey>(configWithoutByKey);
-      expect(validated2.byKey).toBe('userId');
+      const validated2 = validateConfig<'users', TestUser, typeof configWithoutId>(configWithoutId);
+      expect(validated2.id).toBe('userId');
     });
   });
 
