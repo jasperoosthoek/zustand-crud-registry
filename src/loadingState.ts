@@ -93,6 +93,7 @@ export function finishAction<
   store: CrudStore<T, K, C, V>,
   action: string,
   response: any = null,
+  id: string | number | null | undefined = null,
 ){
   setLoadingState<T, K, C, V>(
     store,
@@ -100,7 +101,7 @@ export function finishAction<
     {
       isLoading: false,
       error: null,
-      id: response?.id || null,
+      id: id ?? null,
       response,
     }
   );

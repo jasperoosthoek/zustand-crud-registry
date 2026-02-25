@@ -96,7 +96,7 @@ export function useActions<
 
     const act = Object.assign(
     async (...funcArgs: any[]) => {
-      const { isLoading } = getLoadingState(store, actionKey);
+      const { isLoading } = getLoadingState(store, loadingStateKey);
       if (isLoading) return;
 
       const data = funcArgs[0];
@@ -140,7 +140,7 @@ export function useActions<
         prepare,
       })
 
-      const id = data?.id
+      const id = data?.[store.config.id]
       await initiateAction(
         store,
         loadingStateKey,
@@ -180,12 +180,12 @@ export function useActions<
         callIfFunc(actionCallback, responseData);
         callIfFunc(callback, responseData);
 
-        await finishAction(store, loadingStateKey);
+        await finishAction(store, loadingStateKey, responseData, id);
 
         return responseData;
       } catch (error) {
         console.error(error)
-        await actionError(store, actionKey, error);
+        await actionError(store, loadingStateKey, error);
         callIfFunc(actionOnError, error);
         callIfFunc(callerOnError, error);
       }

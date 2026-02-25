@@ -78,3 +78,8 @@
 - Remove conditional `useMemo` hooks — hooks are now unconditional with conditional internals
 - Deduplicate select logic in `useCrud` — delegates to `useSelectBase`
 - New type probe files for config, action, and store type coverage
+
+##### Upcoming
+- Fix custom action loading guard and error state writing to `'custom'` key instead of the actual action name
+- Fix hardcoded `data.id` / `response.id` — now uses `config.id` so custom id fields work for per-record loading indicators
+- Known limitation: when `byKey` differs from `id`, `useCrud(store, value)` requires the `byKey` value for lookup — the auto-fetch then sends that value in the `id` field position

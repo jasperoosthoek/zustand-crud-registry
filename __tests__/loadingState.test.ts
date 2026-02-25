@@ -146,7 +146,7 @@ describe('loadingState', () => {
 
     it('should set loading state to finished with response', () => {
       const mockResponse = { id: 123, name: 'Test User' };
-      finishAction(store, 'update', mockResponse);
+      finishAction(store, 'update', mockResponse, 123);
 
       const loadingState = getLoadingState(store, 'update');
       expect(loadingState.isLoading).toBe(false);
