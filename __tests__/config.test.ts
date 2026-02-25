@@ -28,7 +28,6 @@ describe('config', () => {
 
       expect(validated.detailKey).toBe('id');
       expect(validated.id).toBe('id');
-      expect(validated.parseIdToInt).toBe(false);
       expect(validated.state).toEqual({});
       expect(validated.axios).toBe(mockAxios);
       expect(validated.onError).toBeNull();
@@ -44,7 +43,6 @@ describe('config', () => {
         route: '/users',
         detailKey: 'userId',
         id: 'userId',
-        parseIdToInt: true,
         state: { selectedId: null },
         onError: mockOnError,
         includeRecord: true,
@@ -54,7 +52,6 @@ describe('config', () => {
 
       expect(validated.detailKey).toBe('userId');
       expect(validated.id).toBe('userId');
-      expect(validated.parseIdToInt).toBe(true);
       expect(validated.state).toEqual({ selectedId: null });
       expect(validated.onError).toBe(mockOnError);
       expect(validated.includeRecord).toBe(true);
@@ -81,7 +78,7 @@ describe('config', () => {
         callback: null,
         onError: null,
         onResponse: null,
-        prepareResponse: null,
+
         route: '/users',
       });
 
@@ -91,7 +88,7 @@ describe('config', () => {
         callback: null,
         onError: null,
         onResponse: null,
-        prepareResponse: null,
+
         route: '/users',
       });
 
@@ -103,7 +100,7 @@ describe('config', () => {
         callback: null,
         onError: null,
         onResponse: null,
-        prepareResponse: null,
+
         route: expect.any(Function),
       });
 
@@ -148,25 +145,46 @@ describe('config', () => {
       });
     });
 
-    it('should use id when provided, fallback to detailKey', () => {
-      const configWithId = {
+    it('should default detailKey to id, not the other way around', () => {
+      // Only id set → detailKey defaults to id
+      const configIdOnly = {
         axios: mockAxios,
         route: '/users',
-        detailKey: 'userId',
-        id: 'email',
+        id: 'uuid',
       };
+      const v1 = validateConfig<'users', TestUser, typeof configIdOnly>(configIdOnly);
+      expect(v1.id).toBe('uuid');
+      expect(v1.detailKey).toBe('uuid');
 
-      const validated = validateConfig<'users', TestUser, typeof configWithId>(configWithId);
-      expect(validated.id).toBe('email');
-
-      const configWithoutId = {
+      // Only detailKey set → id stays at 'id'
+      const configDetailKeyOnly = {
         axios: mockAxios,
         route: '/users',
-        detailKey: 'userId',
+        detailKey: 'slug',
       };
+      const v2 = validateConfig<'users', TestUser, typeof configDetailKeyOnly>(configDetailKeyOnly);
+      expect(v2.id).toBe('id');
+      expect(v2.detailKey).toBe('slug');
 
-      const validated2 = validateConfig<'users', TestUser, typeof configWithoutId>(configWithoutId);
-      expect(validated2.id).toBe('userId');
+      // Both set → both explicit
+      const configBoth = {
+        axios: mockAxios,
+        route: '/users',
+        id: 'uuid',
+        detailKey: 'slug',
+      };
+      const v3 = validateConfig<'users', TestUser, typeof configBoth>(configBoth);
+      expect(v3.id).toBe('uuid');
+      expect(v3.detailKey).toBe('slug');
+
+      // Neither set → both 'id'
+      const configNeither = {
+        axios: mockAxios,
+        route: '/users',
+      };
+      const v4 = validateConfig<'users', TestUser, typeof configNeither>(configNeither);
+      expect(v4.id).toBe('id');
+      expect(v4.detailKey).toBe('id');
     });
   });
 

@@ -8,4 +8,5 @@ export * from './useGetList';
 export * from './useActions';
 export * from './usePagination';
 export * from './useCrudState';
+export * from './useSelect';
 export * from './useCrud';

@@ -311,7 +311,6 @@ describe('Zustand CRUD Registry', () => {
 
       expect(validated.detailKey).toBe('id');
       expect(validated.id).toBe('id');
-      expect(validated.parseIdToInt).toBe(false);
       expect(validated.state).toEqual({});
       expect(validated.axios).toBe(mockAxios);
       expect(validated.onError).toBeNull();
@@ -327,7 +326,6 @@ describe('Zustand CRUD Registry', () => {
         route: '/users',
         detailKey: 'userId',
         id: 'userId',
-        parseIdToInt: true,
         state: { selectedId: null },
         onError: mockOnError,
         includeRecord: true,
@@ -337,7 +335,6 @@ describe('Zustand CRUD Registry', () => {
 
       expect(validated.detailKey).toBe('userId');
       expect(validated.id).toBe('userId');
-      expect(validated.parseIdToInt).toBe(true);
       expect(validated.state).toEqual({ selectedId: null });
       expect(validated.onError).toBe(mockOnError);
       expect(validated.includeRecord).toBe(true);
@@ -363,7 +360,7 @@ describe('Zustand CRUD Registry', () => {
         callback: null,
         onError: null,
         onResponse: null,
-        prepareResponse: null,
+
         route: '/users',
       });
 
@@ -373,7 +370,7 @@ describe('Zustand CRUD Registry', () => {
         callback: null,
         onError: null,
         onResponse: null,
-        prepareResponse: null,
+
         route: '/users',
       });
 
@@ -383,7 +380,7 @@ describe('Zustand CRUD Registry', () => {
         callback: null,
         onError: null,
         onResponse: null,
-        prepareResponse: null,
+
         route: expect.any(Function),
       });
     });

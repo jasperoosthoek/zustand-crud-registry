@@ -319,7 +319,8 @@ Creates or retrieves a store for a specific entity type.
   };
   state?: object;                 // Component state
   onError?: (error: any) => void; // Error handler
-  id?: string;                    // ID field name (default: 'id')
+  detailKey?: string;              // Field used in detail routes (default: 'id')
+  id?: string;                    // Field used to key internal Map (default: detailKey)
   includeList?: boolean;          // Include list array in useCrud return
   includeRecord?: boolean;        // Include record object in useCrud return
   pagination?: true | PaginationConfig; // Enable pagination

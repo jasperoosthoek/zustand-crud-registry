@@ -27,8 +27,6 @@ type PrepareResponseOptions = {
 interface PrepareDataResponseOptions extends PrepareResponseOptions {
   data: any;
 }
-export type PrepareDetailResponse<T> = (responseData: any, options: PrepareDataResponseOptions) => T;
-export type PrepareListResponse<T> = (responseData: any, options: PrepareResponseOptions) => T[];
 
 export type DetailPrepare = (instance: any) => any;
 export type Callback = (responseData: any) => void;
@@ -42,25 +40,21 @@ export type AsyncFunction<T> = {
   route: Route;
 }
 
-export interface AsyncListFunction<T> extends Omit<AsyncFunction<T>, 'prepare'> {
-  prepareResponse: PrepareListResponse<T> | null,
-}
+export interface AsyncListFunction<T> extends Omit<AsyncFunction<T>, 'prepare'> {}
 export interface AsyncDetailFunction<T> extends Omit<AsyncFunction<T>, 'prepare'> {
   prepare: DetailPrepare | null,
-  prepareResponse: PrepareDetailResponse<T> | null,
 };
 export type GetListConfig<T> = AsyncListFunction<T>;
-export type GetAllConfig<T> = AsyncListFunction<T>;
 export type CreateConfig<T> = AsyncDetailFunction<T>;
 
 export type GetConfig<T> = AsyncDetailFunction<T>;
 export type UpdateConfig<T> = AsyncDetailFunction<T>;
-export type DeleteConfig<T> = Omit<AsyncFunction<T>, 'prepareResponse'>;
+export type DeleteConfig<T> = AsyncFunction<T>;
 
 export type OnResponseOptions = PrepareDataResponseOptions;
 export type OnResponse = (responseData: any, options: OnResponseOptions) => void;
 
-export interface ValidCustomActionConfig<T> extends Omit<AsyncFunction<T>, 'prepareResponse'> {}
+export interface ValidCustomActionConfig<T> extends AsyncFunction<T> {}
 
 export interface CustomActionConfig<T> extends Partial<Omit<ValidCustomActionConfig<T>, 'route'>> {
   route: Route;
@@ -108,7 +102,6 @@ export type State<T> = {
 export type Actions<T> = {
   get?: boolean | Partial<GetConfig<T>>;
   getList?: boolean | Partial<GetListConfig<T>>;
-  getAll?: boolean | Partial<GetAllConfig<T>>;
   create?: boolean | Partial<CreateConfig<T>>;
   update?: boolean | Partial<UpdateConfig<T>>;
   delete?: boolean | Partial<DeleteConfig<T>>;
@@ -118,7 +111,6 @@ export type Actions<T> = {
 export type BaseConfig<T> = {
   actions?: Actions<T>;
   detailKey?: string;
-  parseIdToInt?: boolean;
   id?: string;
   state?: State<T>;
   route: Route;
@@ -140,7 +132,6 @@ type ActionKeys<K extends string, T, TConfig extends Config<K, T>> =
 type ValidatedActionTypes<T> = {
   get: GetConfig<T>;
   getList: GetListConfig<T>;
-  getAll: GetAllConfig<T>;
   create: CreateConfig<T>;
   update: UpdateConfig<T>;
   delete: DeleteConfig<T>;
@@ -162,7 +153,6 @@ type ActionConfigIfExists<
 export type ValidatedConfig<K extends string, T, TConfig extends Config<K, T>> = Prettify<{
   detailKey: string;
   id: string;
-  parseIdToInt: boolean;
   state: {
     [K in keyof TConfig['state']]: TConfig['state'][K];
   };
@@ -206,11 +196,10 @@ export const validateConfig = <
   config: C
 ): ValidatedConfig<K, T, C> => {
   const {
-    // The field used in detail routes (get, update, delete)
-    detailKey = 'id',
-    parseIdToInt = false,
-    // The field used to key the internal Map (defaults to detailKey)
-    id = null,
+    // The field used to key the internal Map (default: 'id')
+    id: configId,
+    // The field used in detail routes (default: falls back to id)
+    detailKey: configDetailKey,
     state,
     route,
     customActions = {},
@@ -219,6 +208,9 @@ export const validateConfig = <
     includeRecord = false,
     pagination = null,
   } = config;
+
+  const id = configId ?? 'id';
+  const detailKey = configDetailKey ?? id;
 
   const actions =
     !config.actions
@@ -237,8 +229,7 @@ export const validateConfig = <
 
   const newConfig = {
     detailKey,
-    id: id ? id : detailKey,
-    parseIdToInt,
+    id,
     state: (state || {}) as { [K in keyof C['state']]: C['state'][K] },
     axios: config.axios,
     onError,
@@ -252,7 +243,7 @@ export const validateConfig = <
             callback: null,
             onError,
             onResponse: null,
-            prepareResponse: null,
+
             route,
             ...typeof actions.getList === 'object' ? actions.getList : {},
           } as GetListConfig<T>}
@@ -264,7 +255,7 @@ export const validateConfig = <
             callback: null,
             onError,
             onResponse: null,
-            prepareResponse: null,
+
             route,
             ...typeof actions.create === 'object' ? actions.create : {},
           } as CreateConfig<T>}
@@ -276,7 +267,7 @@ export const validateConfig = <
             callback: null,
             onError,
             onResponse: null,
-            prepareResponse: null,
+
             route: detailRoute,
             ...typeof actions.get === 'object' ? actions.get : {},
           } as GetConfig<T>}
@@ -288,7 +279,7 @@ export const validateConfig = <
             callback: null,
             onError,
             onResponse: null,
-            prepareResponse: null,
+
             route: detailRoute,
             ...typeof actions.update === 'object' ? actions.update : {},
           } as UpdateConfig<T>}
@@ -335,7 +326,6 @@ export const validateConfig = <
 export type ValidConfig<T> = {
   detailKey: string;
   id: string | null;
-  parseIdToInt: boolean;
   state: State<T>;
   axios: AxiosInstance;
   onError: OnError | null;

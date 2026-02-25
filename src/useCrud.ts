@@ -5,6 +5,7 @@ import { useSelectBase } from "./useSelectBase";
 import type { CrudStore } from "./createStoreRegistry";
 import type { Config, ValidatedConfig, ValidConfig, Pagination, Prettify } from "./config"
 import type { CustomActionFunctions, ActionFunctions } from "./useActions";
+import type { LookupOptions } from "./useGet";
 
 type ConditionalActionFunctions<
   T,
@@ -58,8 +59,11 @@ export function useCrud<
   C extends Config<K, T>
 >(
   store: CrudStore<T, K, C, ValidatedConfig<K, T, C>>,
-  id?: number | string | null
+  id?: number | string | null,
+  options?: LookupOptions
 ) {
+  const by = options?.by ?? store.config.detailKey;
+  const useDetailKeyScan = by === store.config.detailKey && store.config.detailKey !== store.config.id;
   const { includeList, includeRecord, select: selectConfig } = store.config;
   const hasState = store.config.state && Object.keys(store.config.state).length > 0;
   const hasPagination = !!store.config.pagination;
@@ -71,17 +75,35 @@ export function useCrud<
     () => includeList && data ? Array.from(data.values()) : null,
     [data]
   );
-  const record = useMemo(
-    () => includeRecord && data ? Object.fromEntries(data) : null,
-    [data]
-  );
+  const dk = store.config.detailKey;
+  const record = useMemo(() => {
+    if (!includeRecord || !data) return null;
+    const rec: { [key: string]: T } = {};
+    data.forEach((item) => {
+      rec[String((item as any)[dk])] = item;
+    });
+    return rec;
+  }, [data]);
 
   // Instance by id
   const stringId = id != null ? String(id) : null;
-  const instance = useMemo(
-    () => data && stringId != null ? data.get(stringId) ?? null : null,
-    [data, stringId]
-  );
+
+  const findByField = (mapData: Map<string, T> | null, value: any): T | null => {
+    if (!mapData || value == null) return null;
+    const strVal = String(value);
+    let found: T | null = null;
+    mapData.forEach((item) => {
+      if (found) return;
+      const field = (item as any)[by];
+      if (field === value || String(field) === strVal) found = item;
+    });
+    return found;
+  };
+
+  const instance = useMemo(() => {
+    if (useDetailKeyScan) return findByField(data, id);
+    return data && stringId != null ? data.get(stringId) ?? null : null;
+  }, [data, stringId, useDetailKeyScan]);
 
   // Actions
   const actions = useActions(store);
@@ -91,7 +113,11 @@ export function useCrud<
   useEffect(() => {
     if (stringId == null || !actionGet) return;
     const state = store.getState();
-    if (state.data?.get(stringId)) return;
+    if (useDetailKeyScan) {
+      if (findByField(state.data, id)) return;
+    } else {
+      if (state.data?.get(stringId)) return;
+    }
     if (state.loadingState['get']?.isLoading) return;
     if (state.loadingState['get']?.error) return;
     actionGet({ [store.config.detailKey]: id });
