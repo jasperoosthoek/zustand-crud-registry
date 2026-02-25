@@ -649,16 +649,8 @@ describe('custom detailKey and id', () => {
       expect(result.current.instance).toEqual({ uuid: 'u1', slug: 'item-a', name: 'Item A' });
     });
 
-    it('auto-fetch sends { slug: uuid } — value mismatch when id !== detailKey', async () => {
-      // When detailKey: 'slug' and id: 'uuid', useCrud(store, 'u1') auto-fetches
-      // with { slug: 'u1' }. The API field name ('slug') is correct,
-      // but the value ('u1') is the uuid, not the actual slug.
-      // This is a fundamental limitation: the single parameter can't serve
-      // both Map lookup (needs uuid) and API request (needs slug).
-
-      const mockAxiosFn = jest.fn().mockResolvedValueOnce({
-        data: { uuid: 'u1', slug: 'item-a', name: 'Fetched' },
-      });
+    it('auto-fetch skipped when by !== detailKey (can\'t build route from uuid)', async () => {
+      const mockAxiosFn = jest.fn();
       Object.assign(mockAxiosFn, mockAxios);
 
       const store = getOrCreate('items_autofetch', {
@@ -669,18 +661,15 @@ describe('custom detailKey and id', () => {
         actions: { get: true, getList: true },
       });
 
-      renderHook(() => useCrud(store, 'u1'));
+      // Instance not in store, by: 'uuid' !== detailKey 'slug'
+      renderHook(() => useCrud(store, 'u1', { by: 'uuid' }));
 
       await act(async () => {
         await new Promise((r) => setTimeout(r, 0));
       });
 
-      // The route receives uuid value in the slug position
-      expect(mockAxiosFn).toHaveBeenCalledWith(
-        expect.objectContaining({
-          url: '/items/u1', // 'u1' is uuid, not a slug
-        }),
-      );
+      // No fetch — can't build correct route from a uuid value
+      expect(mockAxiosFn).not.toHaveBeenCalled();
     });
   });
 

@@ -1436,6 +1436,30 @@ describe('granular hooks', () => {
       expect(mockAxiosFn).not.toHaveBeenCalled();
     });
 
+    it('by: uuid — skips auto-fetch (can\'t build route from non-detailKey value)', async () => {
+      const mockAxiosFn = jest.fn();
+      Object.assign(mockAxiosFn, mockAxios);
+
+      const store = getOrCreate('items_get_by_id_no_fetch', {
+        axios: mockAxiosFn as any,
+        route: '/items',
+        detailKey: 'slug',
+        id: 'uuid',
+        actions: { get: true, getList: true },
+      });
+
+      // Instance NOT in store — would normally trigger auto-fetch
+      const { result } = renderHook(() => useGet(store, 'u1', { by: 'uuid' }));
+
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
+
+      // No fetch — by: 'uuid' !== detailKey 'slug', can't build correct route
+      expect(result.current[0]).toBeNull();
+      expect(mockAxiosFn).not.toHaveBeenCalled();
+    });
+
     it('id === detailKey — both modes behave identically', async () => {
       const sameKeyCreate = createStoreRegistry<{ items: DualItem }>();
 
@@ -1571,6 +1595,30 @@ describe('granular hooks', () => {
 
       const { result } = renderHook(() => useCrud(store, 'item-a', { by: 'slug' }));
       expect(result.current.instance).toEqual({ uuid: 'u1', slug: 'item-a', name: 'A' });
+      expect(mockAxiosFn).not.toHaveBeenCalled();
+    });
+
+    it('by: uuid — skips auto-fetch (can\'t build route from non-detailKey value)', async () => {
+      const mockAxiosFn = jest.fn();
+      Object.assign(mockAxiosFn, mockAxios);
+
+      const store = getOrCreate('items_crud_by_id_no_fetch', {
+        axios: mockAxiosFn as any,
+        route: '/items',
+        detailKey: 'slug',
+        id: 'uuid',
+        actions: { get: true, getList: true },
+      });
+
+      // Instance NOT in store — would normally trigger auto-fetch
+      const { result } = renderHook(() => useCrud(store, 'u1', { by: 'uuid' }));
+
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
+
+      // No fetch — by: 'uuid' !== detailKey 'slug', can't build correct route
+      expect(result.current.instance).toBeNull();
       expect(mockAxiosFn).not.toHaveBeenCalled();
     });
 

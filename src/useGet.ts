@@ -46,8 +46,11 @@ export function useGet<T, K extends string, C extends Config<K, T>>(
   // Attach loading state from the action
   Object.assign(get, actionGet ?? defaultLoadingState);
 
-  // Auto-fetch on mount / id change when instance is not in store
+  // Auto-fetch on mount / id change when instance is not in store.
+  // Skip when by !== detailKey — can't build a correct route from a non-detailKey value.
+  const canAutoFetch = by === store.config.detailKey;
   useEffect(() => {
+    if (!canAutoFetch) return;
     if (stringId == null || !actionGet) return;
     const state = store.getState();
     if (useDetailKeyScan) {
@@ -58,7 +61,7 @@ export function useGet<T, K extends string, C extends Config<K, T>>(
     if (state.loadingState['get']?.isLoading) return;
     if (state.loadingState['get']?.error) return;
     get();
-  }, [stringId, get]);
+  }, [stringId, get, canAutoFetch]);
 
   return [instance, get] as [T | null, GetFunction];
 }

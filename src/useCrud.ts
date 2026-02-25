@@ -109,8 +109,11 @@ export function useCrud<
   const actions = useActions(store);
   const actionGet = (actions as { get?: ActionFunctions<T>['get'] }).get;
 
-  // Auto-fetch instance on mount / id change when not in store
+  // Auto-fetch instance on mount / id change when not in store.
+  // Skip when by !== detailKey — can't build a correct route from a non-detailKey value.
+  const canAutoFetch = by === store.config.detailKey;
   useEffect(() => {
+    if (!canAutoFetch) return;
     if (stringId == null || !actionGet) return;
     const state = store.getState();
     if (useDetailKeyScan) {
@@ -121,7 +124,7 @@ export function useCrud<
     if (state.loadingState['get']?.isLoading) return;
     if (state.loadingState['get']?.error) return;
     actionGet({ [store.config.detailKey]: id });
-  }, [stringId, actionGet, store, id]);
+  }, [stringId, actionGet, store, id, canAutoFetch]);
 
   // Pagination — stable refs, no extra re-renders when unchanged
   const pagination = store((s) => s.pagination);
