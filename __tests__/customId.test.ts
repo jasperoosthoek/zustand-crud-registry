@@ -161,7 +161,7 @@ describe('custom detailKey and id', () => {
         actions: { get: true, getList: true },
       });
 
-      // Default by: detailKey ('slug'). id !== detailKey → scan for item.slug === 'item-a'
+      // id !== detailKey → scan for item.slug === 'item-a'
       const { result } = renderHook(() => useCrud(store, 'item-a'));
 
       await act(async () => {
@@ -449,7 +449,7 @@ describe('custom detailKey and id', () => {
 
         store.getState().setList([{ id: 1, uuid: 'u1', name: 'Item A' }]);
 
-        // Default by: detailKey ('uuid'). id === detailKey → Map.get('u1')
+        // id === detailKey → Map.get('u1')
         const { result } = renderHook(() => useCrud(store, 'u1'));
 
         expect(result.current.instance).toEqual({ id: 1, uuid: 'u1', name: 'Item A' });
@@ -617,7 +617,7 @@ describe('custom detailKey and id', () => {
       expect(store.getState().selectedIds).toEqual(['u2']);
     });
 
-    it('useCrud(store, slug) should find instance (default by: detailKey)', () => {
+    it('useCrud(store, slug) should find instance by detailKey scan', () => {
       const store = getOrCreate('items_lookup_ok', {
         axios: mockAxios as any,
         route: '/items',
@@ -628,48 +628,9 @@ describe('custom detailKey and id', () => {
 
       store.getState().setList([{ uuid: 'u1', slug: 'item-a', name: 'Item A' }]);
 
-      // Default by: detailKey ('slug') — scans item.slug, finds match
+      // detailKey ('slug') — scans item.slug, finds match
       const { result } = renderHook(() => useCrud(store, 'item-a'));
       expect(result.current.instance).toEqual({ uuid: 'u1', slug: 'item-a', name: 'Item A' });
-    });
-
-    it('useCrud(store, uuid, { by: uuid }) should find instance by Map key', () => {
-      const store = getOrCreate('items_lookup_by_uuid', {
-        axios: mockAxios as any,
-        route: '/items',
-        detailKey: 'slug',
-        id: 'uuid',
-        actions: { get: true, getList: true },
-      });
-
-      store.getState().setList([{ uuid: 'u1', slug: 'item-a', name: 'Item A' }]);
-
-      // Explicit by: 'uuid' — direct Map lookup
-      const { result } = renderHook(() => useCrud(store, 'u1', { by: 'uuid' }));
-      expect(result.current.instance).toEqual({ uuid: 'u1', slug: 'item-a', name: 'Item A' });
-    });
-
-    it('auto-fetch skipped when by !== detailKey (can\'t build route from uuid)', async () => {
-      const mockAxiosFn = jest.fn();
-      Object.assign(mockAxiosFn, mockAxios);
-
-      const store = getOrCreate('items_autofetch', {
-        axios: mockAxiosFn as any,
-        route: '/items',
-        detailKey: 'slug',
-        id: 'uuid',
-        actions: { get: true, getList: true },
-      });
-
-      // Instance not in store, by: 'uuid' !== detailKey 'slug'
-      renderHook(() => useCrud(store, 'u1', { by: 'uuid' }));
-
-      await act(async () => {
-        await new Promise((r) => setTimeout(r, 0));
-      });
-
-      // No fetch — can't build correct route from a uuid value
-      expect(mockAxiosFn).not.toHaveBeenCalled();
     });
   });
 

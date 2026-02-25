@@ -5,7 +5,6 @@ import { useSelectBase } from "./useSelectBase";
 import type { CrudStore } from "./createStoreRegistry";
 import type { Config, ValidatedConfig, ValidConfig, Pagination, Prettify } from "./config"
 import type { CustomActionFunctions, ActionFunctions } from "./useActions";
-import type { LookupOptions } from "./useGet";
 
 type ConditionalActionFunctions<
   T,
@@ -60,10 +59,9 @@ export function useCrud<
 >(
   store: CrudStore<T, K, C, ValidatedConfig<K, T, C>>,
   id?: number | string | null,
-  options?: LookupOptions
 ) {
-  const by = options?.by ?? store.config.detailKey;
-  const useDetailKeyScan = by === store.config.detailKey && store.config.detailKey !== store.config.id;
+  const detailKey = store.config.detailKey;
+  const useDetailKeyScan = store.config.detailKey !== store.config.id;
   const { includeList, includeRecord, select: selectConfig } = store.config;
   const hasState = store.config.state && Object.keys(store.config.state).length > 0;
   const hasPagination = !!store.config.pagination;
@@ -75,12 +73,11 @@ export function useCrud<
     () => includeList && data ? Array.from(data.values()) : null,
     [data]
   );
-  const dk = store.config.detailKey;
   const record = useMemo(() => {
     if (!includeRecord || !data) return null;
     const rec: { [key: string]: T } = {};
     data.forEach((item) => {
-      rec[String((item as any)[dk])] = item;
+      rec[String((item as any)[detailKey])] = item;
     });
     return rec;
   }, [data]);
@@ -88,20 +85,20 @@ export function useCrud<
   // Instance by id
   const stringId = id != null ? String(id) : null;
 
-  const findByField = (mapData: Map<string, T> | null, value: any): T | null => {
+  const findByDetailKey = (mapData: Map<string, T> | null, value: any): T | null => {
     if (!mapData || value == null) return null;
     const strVal = String(value);
     let found: T | null = null;
     mapData.forEach((item) => {
       if (found) return;
-      const field = (item as any)[by];
+      const field = (item as any)[detailKey];
       if (field === value || String(field) === strVal) found = item;
     });
     return found;
   };
 
   const instance = useMemo(() => {
-    if (useDetailKeyScan) return findByField(data, id);
+    if (useDetailKeyScan) return findByDetailKey(data, id);
     return data && stringId != null ? data.get(stringId) ?? null : null;
   }, [data, stringId, useDetailKeyScan]);
 
@@ -110,21 +107,18 @@ export function useCrud<
   const actionGet = (actions as { get?: ActionFunctions<T>['get'] }).get;
 
   // Auto-fetch instance on mount / id change when not in store.
-  // Skip when by !== detailKey — can't build a correct route from a non-detailKey value.
-  const canAutoFetch = by === store.config.detailKey;
   useEffect(() => {
-    if (!canAutoFetch) return;
     if (stringId == null || !actionGet) return;
     const state = store.getState();
     if (useDetailKeyScan) {
-      if (findByField(state.data, id)) return;
+      if (findByDetailKey(state.data, id)) return;
     } else {
       if (state.data?.get(stringId)) return;
     }
     if (state.loadingState['get']?.isLoading) return;
     if (state.loadingState['get']?.error) return;
-    actionGet({ [store.config.detailKey]: id });
-  }, [stringId, actionGet, store, id, canAutoFetch]);
+    actionGet({ [detailKey]: id });
+  }, [stringId, actionGet, store, id, detailKey]);
 
   // Pagination — stable refs, no extra re-renders when unchanged
   const pagination = store((s) => s.pagination);
