@@ -25,6 +25,12 @@ export type CrudState<T, S> = {
   setSelectedIds: (ids: string[]) => void;
 };
 
+type CrudStoreMethods<T, S> = Pick<CrudState<T, S>,
+  'setList' | 'patchList' | 'updateList' |
+  'setInstance' | 'updateInstance' | 'deleteInstance' |
+  'setPagination' | 'setSelectedIds'
+>;
+
 export type CrudStore<
   T,
   K extends string,
@@ -34,7 +40,7 @@ export type CrudStore<
   key: K;
   config: V;
   rawConfig: C;
-};
+} & CrudStoreMethods<T, Config<K, T>['state']>;
 
 export function createStoreRegistry<Models extends Record<string, any>>() {
   const storeRegistry: {
@@ -53,8 +59,7 @@ export function createStoreRegistry<Models extends Record<string, any>>() {
       const validated = validateConfig<K, Models[K], C>(rawConfig);
       const { id: mapKey } = validated;
 
-      const store: CrudStore<Models[K], K, C, typeof validated> = Object.assign(
-        create<CrudState<Models[K], C['state']>>((set) => ({
+      const zustandStore = create<CrudState<Models[K], C['state']>>((set) => ({
           data: null,
           setList: (list) => set({
             data: list
@@ -157,10 +162,24 @@ export function createStoreRegistry<Models extends Record<string, any>>() {
             })),
           selectedIds: [] as string[],
           setSelectedIds: (ids: string[]) => set({ selectedIds: ids }),
-        })),
-        { key, config: validated, rawConfig: rawConfig }
+        }));
+
+      const s = zustandStore.getState();
+      const store: CrudStore<Models[K], K, C, typeof validated> = Object.assign(
+        zustandStore,
+        {
+          key, config: validated, rawConfig: rawConfig,
+          setList: s.setList,
+          patchList: s.patchList,
+          updateList: s.updateList,
+          setInstance: s.setInstance,
+          updateInstance: s.updateInstance,
+          deleteInstance: s.deleteInstance,
+          setPagination: s.setPagination,
+          setSelectedIds: s.setSelectedIds,
+        },
       );
-      
+
       storeRegistry[key] = store;
     }
 

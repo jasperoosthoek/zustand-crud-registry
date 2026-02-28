@@ -79,9 +79,10 @@
 - Deduplicate select logic in `useCrud` — delegates to `useSelectBase`
 - New type probe files for config, action, and store type coverage
 
-##### Upcoming
+##### Version 0.2.4
 - Fix custom action loading/error state writing to `'custom'` key instead of actual action name
 - Fix hardcoded `data.id` / `response.id` — now uses `config.id`
 - Rename config fields: `id` → `detailKey`, `byKey` → `id`. `id` defaults to `'id'`, `detailKey` defaults to `id`.
 - `record` keyed by `detailKey` instead of `id`
 - Remove stale config fields: `getAll`, `prepareResponse`, `parseIdToInt`
+- Expose store mutation methods (`setList`, `patchList`, etc.) directly on the store object

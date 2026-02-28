@@ -60,3 +60,13 @@ const _setPagination: (partial: Partial<Pagination>) => void = state.setPaginati
 
 // Selection
 const _setSelectedIds: (ids: string[]) => void = state.setSelectedIds;
+
+// ── Direct store methods (no getState() needed) ─────────────────────
+const _directSetList: (data: Item[] | null) => void = store.setList;
+const _directPatchList: (data: Partial<Item>[]) => void = store.patchList;
+const _directUpdateList: (data: Item[]) => void = store.updateList;
+const _directSetInstance: (instance: Item) => void = store.setInstance;
+const _directUpdateInstance: (instance: Item) => void = store.updateInstance;
+const _directDeleteInstance: (instance: Item) => void = store.deleteInstance;
+const _directSetPagination: (partial: Partial<Pagination>) => void = store.setPagination;
+const _directSetSelectedIds: (ids: string[]) => void = store.setSelectedIds;

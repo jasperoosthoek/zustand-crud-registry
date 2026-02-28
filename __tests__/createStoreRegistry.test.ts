@@ -274,6 +274,118 @@ describe('createStoreRegistry', () => {
     expect(currentState.state.filterBy).toBe('active');
   });
 
+  describe('direct store methods', () => {
+    it('should be the same references as getState() methods', () => {
+      const getOrCreateStore = createStoreRegistry<{ users: TestUser }>();
+      const store = getOrCreateStore('users', {
+        axios: mockAxios, route: '/users', actions: { getList: true },
+      });
+      const state = store.getState();
+      expect(store.setList).toBe(state.setList);
+      expect(store.patchList).toBe(state.patchList);
+      expect(store.updateList).toBe(state.updateList);
+      expect(store.setInstance).toBe(state.setInstance);
+      expect(store.updateInstance).toBe(state.updateInstance);
+      expect(store.deleteInstance).toBe(state.deleteInstance);
+      expect(store.setPagination).toBe(state.setPagination);
+      expect(store.setSelectedIds).toBe(state.setSelectedIds);
+    });
+
+    it('setList should populate and clear data', () => {
+      const getOrCreateStore = createStoreRegistry<{ users: TestUser }>();
+      const store = getOrCreateStore('users', {
+        axios: mockAxios, route: '/users', actions: { getList: true },
+      });
+
+      store.setList(mockUsers);
+      expect(toRecord(store)).toEqual({
+        '1': mockUsers[0], '2': mockUsers[1], '3': mockUsers[2],
+      });
+
+      store.setList(null);
+      expect(store.getState().data).toBeNull();
+    });
+
+    it('patchList should merge partial updates', () => {
+      const getOrCreateStore = createStoreRegistry<{ users: TestUser }>();
+      const store = getOrCreateStore('users', {
+        axios: mockAxios, route: '/users', actions: { getList: true },
+      });
+
+      store.setList(mockUsers);
+      store.patchList([
+        { id: 1, name: 'Updated John' },
+        { id: 2, email: 'newemail@example.com' },
+      ]);
+
+      const data = store.getState().data!;
+      expect(data.get('1')!.name).toBe('Updated John');
+      expect(data.get('1')!.email).toBe('john@example.com');
+      expect(data.get('2')!.email).toBe('newemail@example.com');
+      expect(data.get('2')!.name).toBe('Jane Smith');
+      expect(data.get('3')).toEqual(mockUsers[2]);
+    });
+
+    it('updateList should upsert items', () => {
+      const getOrCreateStore = createStoreRegistry<{ users: TestUser }>();
+      const store = getOrCreateStore('users', {
+        axios: mockAxios, route: '/users', actions: { getList: true },
+      });
+
+      store.setList(mockUsers);
+      const updated: TestUser = { id: 1, name: 'John Updated', email: 'john.updated@example.com' };
+      const newUser: TestUser = { id: 4, name: 'New User', email: 'new@example.com' };
+      store.updateList([updated, newUser]);
+
+      const data = store.getState().data!;
+      expect(data.get('1')).toEqual(updated);
+      expect(data.get('2')).toEqual(mockUsers[1]);
+      expect(data.get('4')).toEqual(newUser);
+    });
+
+    it('setInstance / updateInstance / deleteInstance', () => {
+      const getOrCreateStore = createStoreRegistry<{ users: TestUser }>();
+      const store = getOrCreateStore('users', {
+        axios: mockAxios, route: '/users', actions: { getList: true },
+      });
+
+      const user: TestUser = { id: 4, name: 'New User', email: 'new@example.com' };
+      store.setInstance(user);
+      expect(store.getState().data!.get('4')).toEqual(user);
+
+      store.updateInstance({ ...user, name: 'Updated' });
+      expect(store.getState().data!.get('4')!.name).toBe('Updated');
+
+      store.deleteInstance({ ...user, name: 'Updated' });
+      expect(store.getState().data!.has('4')).toBe(false);
+    });
+
+    it('setPagination should update pagination state', () => {
+      const getOrCreateStore = createStoreRegistry<{ users: TestUser }>();
+      const store = getOrCreateStore('users', {
+        axios: mockAxios, route: '/users', actions: { getList: true },
+        pagination: { limit: 10 },
+      });
+
+      expect(store.getState().pagination!.limit).toBe(10);
+      store.setPagination({ offset: 20, count: 100 });
+      expect(store.getState().pagination).toMatchObject({ limit: 10, offset: 20, count: 100 });
+    });
+
+    it('setSelectedIds should update selection', () => {
+      const getOrCreateStore = createStoreRegistry<{ users: TestUser }>();
+      const store = getOrCreateStore('users', {
+        axios: mockAxios, route: '/users', actions: { getList: true },
+      });
+
+      store.setSelectedIds(['1', '2']);
+      expect(store.getState().selectedIds).toEqual(['1', '2']);
+
+      store.setSelectedIds([]);
+      expect(store.getState().selectedIds).toEqual([]);
+    });
+  });
+
   it('should handle loading state correctly', () => {
     const getOrCreateStore = createStoreRegistry<{
       users: TestUser;
