@@ -86,3 +86,6 @@
 - `record` keyed by `detailKey` instead of `id`
 - Remove stale config fields: `getAll`, `prepareResponse`, `parseIdToInt`
 - Expose store mutation methods (`setList`, `patchList`, etc.) directly on the store object
+
+##### Version 0.2.5
+- New `UseCrudReturn` helper type
