@@ -1,6 +1,6 @@
 import Axios from "axios";
 import { createStoreRegistry } from "../src/createStoreRegistry";
-import { useCrud } from "../src/useCrud";
+import { useCrud, type UseCrudReturn } from "../src/useCrud";
 import { useSelect } from "../src/useSelect";
 
 const axios = Axios.create({ baseURL: "/api" });
@@ -155,3 +155,26 @@ const _allActionsInst: Item | null = allActions.instance;
 // With id — auto-fetches
 const allActionsWithId = useCrud(allActionsStore, '1');
 const _allActionsInstById: Item | null = allActionsWithId.instance;
+
+// ── UseCrudReturn<Store> — utility type matches useCrud() return ────
+
+// Plain store (only getList)
+type PlainReturn = UseCrudReturn<typeof plainStore>;
+const _plainReturn: PlainReturn = plain;
+// @ts-expect-error — get not in actions via UseCrudReturn
+const _plainReturnGet: PlainReturn extends { get: any } ? true : false = true;
+// @ts-expect-error — no list via UseCrudReturn
+const _plainReturnList: PlainReturn extends { list: any } ? true : false = true;
+
+// Full store (list + record + pagination + state + select)
+type FullReturn = UseCrudReturn<typeof fullStore>;
+const _fullReturn: FullReturn = full;
+const _fullReturnList: FullReturn['list'] = null as Item[] | null;
+const _fullReturnRecord: FullReturn['record'] = null as { [key: string]: Item } | null;
+const _fullReturnPagination: FullReturn['pagination'] = {} as any;
+const _fullReturnState: FullReturn['state'] = { filter: 'all' };
+
+// All actions store
+type AllActionsReturn = UseCrudReturn<typeof allActionsStore>;
+const _allActionsReturn: AllActionsReturn = allActions;
+const _allActionsReturnInst: AllActionsReturn['instance'] = null as Item | null;

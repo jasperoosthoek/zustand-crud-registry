@@ -52,6 +52,21 @@ type SelectFields<T, C> = 'select' extends keyof C
     }
   : {};
 
+export type UseCrudReturn<Store> = (
+  Store extends CrudStore<infer T, infer K, infer C, infer _V>
+    ? Prettify<
+        ConditionalActionFunctions<T, ValidatedConfig<K, T, C>>
+        & ListFields<T, C>
+        & PaginationFields<C>
+        & StateFields<C, C['state']>
+        & CustomActionFunctions<T, ValidatedConfig<K, T, C>>
+        & RecordFields<T, C>
+        & SelectFields<T, C>
+        & InstanceFields<T, C>
+      >
+    : never
+);
+
 export function useCrud<
   T,
   K extends string,
@@ -147,14 +162,5 @@ export function useCrud<
       clear: selectBase.clear,
     } : {},
     ...actions,
-  } as Prettify<
-    ConditionalActionFunctions<T, V>
-    & ListFields<T, C>
-    & PaginationFields<C>
-    & StateFields<C, S>
-    & CustomActionFunctions<T, V>
-    & RecordFields<T, C>
-    & SelectFields<T, C>
-    & InstanceFields<T, C>
-  >;
+  } as UseCrudReturn<typeof store>;
 }
