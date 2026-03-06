@@ -89,3 +89,6 @@
 
 ##### Version 0.2.5
 - New `UseCrudReturn` helper type
+
+##### Version 0.2.6
+- Expose `patchState` as a direct store method (now possible after the `setState` → `patchState` rename)

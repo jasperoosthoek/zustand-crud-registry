@@ -138,13 +138,13 @@ describe('useCrud', () => {
         selectedUserId: null,
         filterBy: 'all',
       });
-      expect(typeof result.current.setState).toBe('function');
+      expect(typeof result.current.patchState).toBe('function');
     });
 
     it('should not have state properties when no state is defined', () => {
       const { result } = renderHook(() => useCrud(store));
       expect(result.current.state).toBeUndefined();
-      expect(result.current.setState).toBeUndefined();
+      expect(result.current.patchState).toBeUndefined();
     });
   });
 
@@ -266,6 +266,47 @@ describe('useCrud', () => {
       const { result } = renderHook(() => useCrud(storeWithRecord));
       expect(result.current.record).toBeNull(); // Initially null
       expect('record' in result.current).toBe(true);
+
+      // Populate data and verify record is built
+      act(() => {
+        storeWithRecord.setList([
+          { id: 1, name: 'Alice', email: 'alice@example.com' },
+          { id: 2, name: 'Bob', email: 'bob@example.com' },
+        ]);
+      });
+
+      expect(result.current.record).toEqual({
+        '1': { id: 1, name: 'Alice', email: 'alice@example.com' },
+        '2': { id: 2, name: 'Bob', email: 'bob@example.com' },
+      });
+    });
+
+    it('should build record keyed by detailKey when detailKey !== id', () => {
+      const getOrCreateStore2 = createStoreRegistry<{
+        usersDetailKey: { id: number; slug: string; name: string };
+      }>();
+      const storeWithDetailKey = getOrCreateStore2('usersDetailKey', {
+        axios: mockAxios,
+        route: '/users',
+        actions: { getList: true },
+        includeRecord: true,
+        detailKey: 'slug',
+      });
+
+      const { result } = renderHook(() => useCrud(storeWithDetailKey));
+
+      act(() => {
+        storeWithDetailKey.setList([
+          { id: 1, slug: 'alice', name: 'Alice' },
+          { id: 2, slug: 'bob', name: 'Bob' },
+        ]);
+      });
+
+      // Record should be keyed by slug (detailKey), not id
+      expect(result.current.record).toEqual({
+        'alice': { id: 1, slug: 'alice', name: 'Alice' },
+        'bob': { id: 2, slug: 'bob', name: 'Bob' },
+      });
     });
 
     it('should not include record when includeRecord is false or undefined', () => {
@@ -417,7 +458,7 @@ describe('useCrud', () => {
 
       // Update part of the state
       act(() => {
-        result.current.setState({ selectedUserId: 1 });
+        result.current.patchState({ selectedUserId: 1 });
       });
       
       expect(result.current.state.selectedUserId).toBe(1);

@@ -333,10 +333,10 @@ describe('granular hooks', () => {
       const { result } = renderHook(() => useCrudState(store));
 
       expect(result.current.state).toEqual({ filter: 'all', count: 0 });
-      expect(typeof result.current.setState).toBe('function');
+      expect(typeof result.current.patchState).toBe('function');
     });
 
-    it('should update state via setState', () => {
+    it('should update state via patchState', () => {
       const store = getOrCreateStore('users-state-update', {
         axios: mockAxios,
         route: '/users',
@@ -346,7 +346,7 @@ describe('granular hooks', () => {
 
       const { result } = renderHook(() => useCrudState(store));
 
-      act(() => { result.current.setState({ filter: 'active' }); });
+      act(() => { result.current.patchState({ filter: 'active' }); });
 
       expect(result.current.state.filter).toBe('active');
       expect(result.current.state.count).toBe(0); // unchanged
@@ -362,8 +362,8 @@ describe('granular hooks', () => {
 
       const { result } = renderHook(() => useCrudState(store));
 
-      act(() => { result.current.setState({ a: 10 }); });
-      act(() => { result.current.setState({ b: 20 }); });
+      act(() => { result.current.patchState({ a: 10 }); });
+      act(() => { result.current.patchState({ b: 20 }); });
 
       expect(result.current.state).toEqual({ a: 10, b: 20, c: 3 });
     });

@@ -256,19 +256,19 @@ describe('createStoreRegistry', () => {
     });
 
     const state = store.getState();
-    
+
     expect(state.state).toEqual({
       selectedUserId: null,
       filterBy: 'all',
     });
 
     // Update state
-    state.setState({ selectedUserId: 1 });
+    state.patchState({ selectedUserId: 1 });
     expect(store.getState().state.selectedUserId).toBe(1);
     expect(store.getState().state.filterBy).toBe('all'); // unchanged
 
     // Update multiple state fields
-    state.setState({ selectedUserId: 2, filterBy: 'active' });
+    state.patchState({ selectedUserId: 2, filterBy: 'active' });
     const currentState = store.getState();
     expect(currentState.state.selectedUserId).toBe(2);
     expect(currentState.state.filterBy).toBe('active');
@@ -289,6 +289,7 @@ describe('createStoreRegistry', () => {
       expect(store.deleteInstance).toBe(state.deleteInstance);
       expect(store.setPagination).toBe(state.setPagination);
       expect(store.setSelectedIds).toBe(state.setSelectedIds);
+      expect(store.patchState).toBe(state.patchState);
     });
 
     it('setList should populate and clear data', () => {
@@ -384,6 +385,22 @@ describe('createStoreRegistry', () => {
       store.setSelectedIds([]);
       expect(store.getState().selectedIds).toEqual([]);
     });
+
+    it('patchState should update custom state', () => {
+      const getOrCreateStore = createStoreRegistry<{ users: TestUser }>();
+      const store = getOrCreateStore('users', {
+        axios: mockAxios, route: '/users', actions: { getList: true },
+        state: { selectedUserId: null as number | null, filterBy: 'all' as string },
+      });
+
+      store.patchState({ selectedUserId: 1 });
+      expect(store.getState().state.selectedUserId).toBe(1);
+      expect(store.getState().state.filterBy).toBe('all');
+
+      store.patchState({ selectedUserId: 2, filterBy: 'active' });
+      expect(store.getState().state.selectedUserId).toBe(2);
+      expect(store.getState().state.filterBy).toBe('active');
+    });
   });
 
   it('should handle loading state correctly', () => {
@@ -398,7 +415,7 @@ describe('createStoreRegistry', () => {
     });
 
     const state = store.getState();
-    
+
     expect(state.loadingState).toEqual({});
 
     // Set loading state

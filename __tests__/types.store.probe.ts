@@ -70,3 +70,9 @@ const _directUpdateInstance: (instance: Item) => void = store.updateInstance;
 const _directDeleteInstance: (instance: Item) => void = store.deleteInstance;
 const _directSetPagination: (partial: Partial<Pagination>) => void = store.setPagination;
 const _directSetSelectedIds: (ids: string[]) => void = store.setSelectedIds;
+
+// Custom state
+const _patchState: (subState: Partial<{ filter: 'all' }>) => void = state.patchState;
+
+// ── Direct patchState (no getState() needed) ──────────────────────
+const _directPatchState: (subState: Partial<{ filter: 'all' }>) => void = store.patchState;

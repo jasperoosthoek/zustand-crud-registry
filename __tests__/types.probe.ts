@@ -40,7 +40,7 @@ plain.record;
 // @ts-expect-error — no state configured
 plain.state;
 // @ts-expect-error — no state configured
-plain.setState;
+plain.patchState;
 // @ts-expect-error — no select configured
 plain.selected;
 // @ts-expect-error — no select configured
@@ -118,7 +118,7 @@ full.list;
 full.pagination;
 full.setPagination({ offset: 10 });
 full.state;
-full.setState({ filter: 'active' });
+full.patchState({ filter: 'active' });
 full.record;
 full.selected;
 // @ts-expect-error — get not in actions
@@ -173,6 +173,7 @@ const _fullReturnList: FullReturn['list'] = null as Item[] | null;
 const _fullReturnRecord: FullReturn['record'] = null as { [key: string]: Item } | null;
 const _fullReturnPagination: FullReturn['pagination'] = {} as any;
 const _fullReturnState: FullReturn['state'] = { filter: 'all' };
+const _fullReturnPatchState: FullReturn['patchState'] = (() => {}) as any;
 
 // All actions store
 type AllActionsReturn = UseCrudReturn<typeof allActionsStore>;
