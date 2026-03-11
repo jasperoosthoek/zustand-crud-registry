@@ -31,7 +31,7 @@ type PaginationFields<C> = 'pagination' extends keyof C
   : {};
 
 type StateFields<C, S> = 'state' extends keyof C
-  ? { state: S; setState: (subState: Partial<S>) => void }
+  ? { state: S; patchState: (subState: Partial<S>) => void }
   : {};
 
 type InstanceFields<T, C> = C extends { actions: { get: any } }
@@ -88,12 +88,15 @@ export function useCrud<
     () => includeList && data ? Array.from(data.values()) : null,
     [data]
   );
+  const sameKey = store.config.detailKey === store.config.id;
   const record = useMemo(() => {
     if (!includeRecord || !data) return null;
-    const rec: { [key: string]: T } = {};
-    data.forEach((item) => {
-      rec[String((item as any)[detailKey])] = item;
-    });
+    const rec: { [key: string]: T } = Object.create(null);
+    if (sameKey) {
+      data.forEach((v, k) => { rec[k] = v; });
+    } else {
+      data.forEach((v) => { rec[String((v as any)[detailKey])] = v; });
+    }
     return rec;
   }, [data]);
 
@@ -141,20 +144,17 @@ export function useCrud<
 
   // Custom state
   const customState = store((s) => s.state);
-  const setCustomState = store((s) => s.setState);
+  const setCustomState = store((s) => s.patchState);
 
   // Selection — delegate to useSelectBase
   const selectBase = useSelectBase(store);
-
-  type V = ValidatedConfig<K, T, C>;
-  type S = C['state'];
 
   return {
     ...includeList ? { list } : {},
     ...includeRecord ? { record } : {},
     ...'get' in store.config.actions ? { instance } : {},
     ...hasPagination ? { pagination, setPagination } : {},
-    ...hasState ? { state: customState, setState: setCustomState } : {},
+    ...hasState ? { state: customState, patchState: setCustomState } : {},
     ...selectConfig ? {
       selected: selectConfig === 'single' ? selectBase.instance : selectBase.instances,
       select: selectBase.select,

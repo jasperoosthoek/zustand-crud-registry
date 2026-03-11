@@ -232,12 +232,12 @@ describe('Zustand CRUD Registry', () => {
       });
 
       // Update state
-      state.setState({ selectedUserId: 1 });
+      state.patchState({ selectedUserId: 1 });
       expect(store.getState().state.selectedUserId).toBe(1);
       expect(store.getState().state.filterBy).toBe('all'); // unchanged
 
       // Update multiple state fields
-      state.setState({ selectedUserId: 2, filterBy: 'active' });
+      state.patchState({ selectedUserId: 2, filterBy: 'active' });
       const currentState = store.getState();
       expect(currentState.state.selectedUserId).toBe(2);
       expect(currentState.state.filterBy).toBe('active');

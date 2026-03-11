@@ -7,12 +7,15 @@ export function useRecord<T, K extends string, C extends Config<K, T>>(
 ): { [key: string]: T } | null {
   const data = store((s) => s.data);
   const dk = store.config.detailKey;
+  const sameKey = store.config.detailKey === store.config.id;
   return useMemo(() => {
     if (!data) return null;
-    const rec: { [key: string]: T } = {};
-    data.forEach((item) => {
-      rec[String((item as any)[dk])] = item;
-    });
+    const rec: { [key: string]: T } = Object.create(null);
+    if (sameKey) {
+      data.forEach((v, k) => { rec[k] = v; });
+    } else {
+      data.forEach((v) => { rec[String((v as any)[dk])] = v; });
+    }
     return rec;
   }, [data]);
 }

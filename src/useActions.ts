@@ -153,7 +153,12 @@ export function useActions<
         store,
         loadingStateKey,
         {
-          ...actionKey === 'update' || actionKey === 'delete' ? { id } : {},
+          ...(
+            actionKey === 'get'
+            || actionKey === 'update'
+            || actionKey === 'delete'
+            || (actionKey === 'custom' && typeof id !== 'undefined')
+          ) ? { id } : {},
         }
       );
 
@@ -192,7 +197,9 @@ export function useActions<
 
         return responseData;
       } catch (error) {
-        console.error(error)
+        if (!actionOnError && !callerOnError) {
+          console.error(error);
+        }
         await actionError(store, loadingStateKey, error);
         callIfFunc(actionOnError, error);
         callIfFunc(callerOnError, error);

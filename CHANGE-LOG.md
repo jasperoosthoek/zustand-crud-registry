@@ -89,3 +89,9 @@
 
 ##### Version 0.2.5
 - New `UseCrudReturn` helper type
+
+##### Version 0.2.6
+- Expose `patchState` as a direct store method (now possible after the `setState` → `patchState` rename)
+
+##### Version 0.2.7
+- Track `id` (detailKey value) in loading state during `get` and custom actions (previously only `update`/`delete`)

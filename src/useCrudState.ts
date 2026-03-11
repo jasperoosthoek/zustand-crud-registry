@@ -9,6 +9,6 @@ export function useCrudState<
   store: CrudStore<T, K, C, ValidatedConfig<K, T, C>>
 ) {
   const state = store((s) => s.state);
-  const setState = store((s) => s.setState);
-  return { state, setState };
+  const patchState = store((s) => s.patchState);
+  return { state, patchState };
 }

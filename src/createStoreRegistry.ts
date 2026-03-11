@@ -18,7 +18,7 @@ export type CrudState<T, S> = {
   loadingState: { [key: string]: LoadingStateValue };
   setLoadingState: (key: string, value: Partial<LoadingStateValue>) => void;
   state: S;
-  setState: (subState: Partial<S>) => void;
+  patchState: (subState: Partial<S>) => void;
   pagination: Pagination | null;
   setPagination: (partial: Partial<Pagination>) => void;
   selectedIds: string[];
@@ -28,7 +28,7 @@ export type CrudState<T, S> = {
 type CrudStoreMethods<T, S> = Pick<CrudState<T, S>,
   'setList' | 'patchList' | 'updateList' |
   'setInstance' | 'updateInstance' | 'deleteInstance' |
-  'setPagination' | 'setSelectedIds'
+  'setPagination' | 'setSelectedIds' | 'patchState'
 >;
 
 export type CrudStore<
@@ -40,7 +40,7 @@ export type CrudStore<
   key: K;
   config: V;
   rawConfig: C;
-} & CrudStoreMethods<T, Config<K, T>['state']>;
+} & CrudStoreMethods<T, Config<K, T>['state'] & {}>;
 
 export function createStoreRegistry<Models extends Record<string, any>>() {
   const storeRegistry: {
@@ -144,7 +144,7 @@ export function createStoreRegistry<Models extends Record<string, any>>() {
             })
           ),
           state: rawConfig.state,
-          setState: (subState: Partial<C['state']>) => set(
+          patchState: (subState: Partial<C['state']>) => set(
             (state) => ({
               state: {
                 ...state.state || {},
@@ -177,6 +177,7 @@ export function createStoreRegistry<Models extends Record<string, any>>() {
           deleteInstance: s.deleteInstance,
           setPagination: s.setPagination,
           setSelectedIds: s.setSelectedIds,
+          patchState: s.patchState,
         },
       );
 
