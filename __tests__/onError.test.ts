@@ -289,6 +289,114 @@ describe('config-level onError', () => {
     expect(result.current.getList.isLoading).toBe(false);
   });
 
+  // ── Conditional console.error ────────────────────────────────────
+
+  it('should not console.error when config-level onError is set', async () => {
+    const error = new Error('handled error');
+    mockAxios.mockRejectedValueOnce(error);
+
+    const getOrCreate = createStoreRegistry<{ items: Item }>();
+    const store = getOrCreate('items-no-console-config', {
+      axios: mockAxios as any,
+      route: '/items',
+      actions: { getList: true },
+      onError: jest.fn(),
+    });
+
+    const { result } = renderHook(() => useCrud(store));
+
+    await act(async () => {
+      await result.current.getList();
+    });
+
+    expect(consoleSpy).not.toHaveBeenCalled();
+  });
+
+  it('should not console.error when caller-level onError is set', async () => {
+    const error = new Error('handled error');
+    mockAxios.mockRejectedValueOnce(error);
+
+    const getOrCreate = createStoreRegistry<{ items: Item }>();
+    const store = getOrCreate('items-no-console-caller', {
+      axios: mockAxios as any,
+      route: '/items',
+      actions: { getList: true },
+    });
+
+    const { result } = renderHook(() => useCrud(store));
+
+    await act(async () => {
+      await result.current.getList({ onError: jest.fn() });
+    });
+
+    expect(consoleSpy).not.toHaveBeenCalled();
+  });
+
+  it('should not console.error when both config and caller onError are set', async () => {
+    const error = new Error('handled error');
+    mockAxios.mockRejectedValueOnce(error);
+
+    const getOrCreate = createStoreRegistry<{ items: Item }>();
+    const store = getOrCreate('items-no-console-both', {
+      axios: mockAxios as any,
+      route: '/items',
+      actions: { getList: true },
+      onError: jest.fn(),
+    });
+
+    const { result } = renderHook(() => useCrud(store));
+
+    await act(async () => {
+      await result.current.getList({ onError: jest.fn() });
+    });
+
+    expect(consoleSpy).not.toHaveBeenCalled();
+  });
+
+  it('should console.error when no onError handler is configured', async () => {
+    const error = new Error('unhandled error');
+    mockAxios.mockRejectedValueOnce(error);
+
+    const getOrCreate = createStoreRegistry<{ items: Item }>();
+    const store = getOrCreate('items-console-fallback', {
+      axios: mockAxios as any,
+      route: '/items',
+      actions: { getList: true },
+    });
+
+    const { result } = renderHook(() => useCrud(store));
+
+    await act(async () => {
+      await result.current.getList();
+    });
+
+    expect(consoleSpy).toHaveBeenCalledTimes(1);
+    expect(consoleSpy).toHaveBeenCalledWith(error);
+  });
+
+  it('should not console.error when custom action has onError', async () => {
+    const error = new Error('handled custom error');
+    mockAxios.mockRejectedValueOnce(error);
+
+    const getOrCreate = createStoreRegistry<{ items: Item }>();
+    const store = getOrCreate('items-no-console-custom', {
+      axios: mockAxios as any,
+      route: '/items',
+      actions: { getList: true },
+      customActions: {
+        archive: { route: '/items/archive', onError: jest.fn() },
+      },
+    });
+
+    const { result } = renderHook(() => useCrud(store));
+
+    await act(async () => {
+      await result.current.archive();
+    });
+
+    expect(consoleSpy).not.toHaveBeenCalled();
+  });
+
   // ── Error state is written to correct key ──────────────────────────
 
   it('should write error to the custom action name, not "custom"', async () => {

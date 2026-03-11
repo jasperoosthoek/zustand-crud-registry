@@ -226,6 +226,55 @@ describe('custom detailKey and id', () => {
       expect(result.current.delete.id).toBe('item-a');
     });
 
+    it('should track slug value in loading state on get', async () => {
+      const mockAxiosFn = jest.fn().mockResolvedValueOnce({
+        data: { id: 1, slug: 'item-a', name: 'Fetched' },
+      });
+      Object.assign(mockAxiosFn, mockAxios);
+
+      const store = getOrCreate('items_get_loading', {
+        axios: mockAxiosFn as any,
+        route: '/items',
+        detailKey: 'slug',
+        actions: { get: true, getList: true },
+      });
+
+      const { result } = renderHook(() => useCrud(store));
+
+      await act(async () => {
+        await result.current.get({ slug: 'item-a' });
+      });
+
+      // Loading state tracks detailKey value (slug)
+      expect(result.current.get.id).toBe('item-a');
+    });
+
+    it('should not have id in loading state for getList', async () => {
+      const mockAxiosFn = jest.fn().mockResolvedValueOnce({
+        data: [
+          { id: 1, slug: 'item-a', name: 'Item A' },
+          { id: 2, slug: 'item-b', name: 'Item B' },
+        ],
+      });
+      Object.assign(mockAxiosFn, mockAxios);
+
+      const store = getOrCreate('items_getlist_loading', {
+        axios: mockAxiosFn as any,
+        route: '/items',
+        detailKey: 'slug',
+        actions: { getList: true },
+      });
+
+      const { result } = renderHook(() => useCrud(store));
+
+      await act(async () => {
+        await result.current.getList();
+      });
+
+      // getList does not track a specific id
+      expect(result.current.getList.id).toBeNull();
+    });
+
     it('should select/toggle/clear by id', () => {
       const store = getOrCreate('items_select', {
         axios: mockAxios as any,
@@ -520,6 +569,30 @@ describe('custom detailKey and id', () => {
         .toBe('/items/item-a');
     });
 
+    it('should track slug in loading state on get', async () => {
+      const mockAxiosFn = jest.fn().mockResolvedValueOnce({
+        data: { uuid: 'u1', slug: 'item-a', name: 'Fetched' },
+      });
+      Object.assign(mockAxiosFn, mockAxios);
+
+      const store = getOrCreate('items_get_loading', {
+        axios: mockAxiosFn as any,
+        route: '/items',
+        detailKey: 'slug',
+        id: 'uuid',
+        actions: { get: true, getList: true },
+      });
+
+      const { result } = renderHook(() => useCrud(store));
+
+      await act(async () => {
+        await result.current.get({ slug: 'item-a' });
+      });
+
+      // Loading state id is slug (config.detailKey), not uuid (config.id)
+      expect(result.current.get.id).toBe('item-a');
+    });
+
     it('should track slug in loading state on update', async () => {
       const mockAxiosFn = jest.fn().mockResolvedValueOnce({
         data: { uuid: 'u1', slug: 'item-a', name: 'Updated' },
@@ -567,6 +640,66 @@ describe('custom detailKey and id', () => {
       });
 
       expect(result.current.delete.id).toBe('item-a');
+    });
+
+    it('should track slug in loading state on custom action when id is present', async () => {
+      const mockAxiosFn = jest.fn().mockResolvedValueOnce({
+        data: { uuid: 'u1', slug: 'item-a', name: 'Toggled' },
+      });
+      Object.assign(mockAxiosFn, mockAxios);
+
+      const store = getOrCreate('items_custom_loading', {
+        axios: mockAxiosFn as any,
+        route: '/items',
+        detailKey: 'slug',
+        id: 'uuid',
+        actions: { getList: true },
+        customActions: {
+          toggleComplete: {
+            route: (data: any) => `/items/${data.slug}/toggle`,
+            method: 'post',
+          },
+        },
+      });
+
+      const { result } = renderHook(() => useCrud(store));
+
+      await act(async () => {
+        await (result.current as any).toggleComplete({ uuid: 'u1', slug: 'item-a' });
+      });
+
+      // Custom action tracks detailKey value when id is present in data
+      expect((result.current as any).toggleComplete.id).toBe('item-a');
+    });
+
+    it('should not track id in loading state on custom action when detailKey is absent from data', async () => {
+      const mockAxiosFn = jest.fn().mockResolvedValueOnce({
+        data: { status: 'ok' },
+      });
+      Object.assign(mockAxiosFn, mockAxios);
+
+      const store = getOrCreate('items_custom_no_id', {
+        axios: mockAxiosFn as any,
+        route: '/items',
+        detailKey: 'slug',
+        id: 'uuid',
+        actions: { getList: true },
+        customActions: {
+          exportAll: {
+            route: '/items/export',
+            method: 'post',
+          },
+        },
+      });
+
+      const { result } = renderHook(() => useCrud(store));
+
+      await act(async () => {
+        await (result.current as any).exportAll({});
+      });
+
+      // No detailKey in data → id should not be set
+      expect((result.current as any).exportAll.id).toBeNull();
     });
 
     it('should select by uuid (config.id), not slug', () => {
