@@ -3,7 +3,7 @@ import { defaultLoadingState, initiateAction, finishAction, actionError, getLoad
 
 import type { AxiosRequestConfig, Method } from 'axios'
 import type { LoadingStateValue } from "./loadingState";
-import type { CrudStore } from "./createStoreRegistry";
+import type { CrudStore, CrudState } from "./createStoreRegistry";
 import type { Config, ValidatedConfig, ValidConfig, AsyncFunction, Route, Prettify } from "./config"
 
 export const callIfFunc = (func: any, ...params: any[]) => {
@@ -86,6 +86,9 @@ export function useActions<
   store: CrudStore<T, K, C, ValidatedConfig<K, T, C>>
 ) {
   const { axios, actions: configActions, customActions, pagination: paginationConfig } = store.config;
+  // Internal full-state access — pagination/setPagination are conditional on
+  // CrudStore but always exist on the underlying Zustand store
+  const _getState = store.getState as () => CrudState<T, any>;
   const loadingState = store((s) => s.loadingState);
 
   function getAction<T, K extends keyof ActionFunctions<T>, J extends keyof C['customActions'] | undefined>(
@@ -121,7 +124,7 @@ export function useActions<
           : (configActions as Record<string, AsyncFunction<T>>)[actionKey]
        ) as AsyncFunction<T>;
 
-      const paginationState = store.getState().pagination;
+      const paginationState = _getState().pagination;
       const paginationParams = actionKey === 'getList' && paginationConfig?.prepareParams && paginationState
         ? paginationConfig.prepareParams(paginationState)
         : null;
@@ -140,7 +143,7 @@ export function useActions<
         prepare,
         ...actionKey === 'update' && data != null
           ? { original: (() => {
-              const mapData = store.getState().data;
+              const mapData = _getState().data;
               if (!mapData) return undefined;
               const idValue = data[store.config.id];
               return idValue != null ? mapData.get(String(idValue)) : undefined;
@@ -166,7 +169,7 @@ export function useActions<
         const response = await axios(mergedAxiosConfig);
         let responseData = response.data;
 
-        const state = store.getState()
+        const state = _getState()
         if (actionKey === 'get') {
           await state.setInstance(response.data);
 

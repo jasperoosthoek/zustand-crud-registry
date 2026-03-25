@@ -5,7 +5,7 @@ import { validateConfig } from "./config";
 
 import type { LoadingStateValue } from "./loadingState";
 import { defaultPagination } from "./config";
-import type { Config, ValidatedConfig, Pagination } from "./config";
+import type { Config, ValidatedConfig, Pagination, Prettify } from "./config";
 
 export type CrudState<T, S> = {
   data: Map<string, T> | null;
@@ -25,22 +25,70 @@ export type CrudState<T, S> = {
   setSelectedIds: (ids: string[]) => void;
 };
 
-type CrudStoreMethods<T, S> = Pick<CrudState<T, S>,
-  'setList' | 'patchList' | 'updateList' |
-  'setInstance' | 'updateInstance' | 'deleteInstance' |
-  'setPagination' | 'setSelectedIds' | 'patchState'
+// Public state type — conditional fields based on config
+type ResolvedCrudState<T, K extends string, C extends Config<K, T>> = Prettify<
+  {
+    data: Map<string, T> | null;
+    setList: (data: T[] | null) => void;
+    patchList: (data: Partial<T>[]) => void;
+    updateList: (data: T[]) => void;
+    setInstance: (instance: T) => void;
+    updateInstance: (instance: T) => void;
+    deleteInstance: (instance: T) => void;
+    loadingState: { [key: string]: LoadingStateValue };
+    setLoadingState: (key: string, value: Partial<LoadingStateValue>) => void;
+  }
+  & ('state' extends keyof C ? {
+      state: C['state'] & {};
+      patchState: (subState: Partial<C['state'] & {}>) => void;
+    } : {})
+  & ('pagination' extends keyof C ? {
+      pagination: Pagination;
+      setPagination: (partial: Partial<Pagination>) => void;
+    } : {})
+  & ('select' extends keyof C ? {
+      selectedIds: string[];
+      setSelectedIds: (ids: string[]) => void;
+    } : {})
 >;
+
+type CrudStoreMethods<T, K extends string, C extends Config<K, T>> = {
+  setList: (data: T[] | null) => void;
+  patchList: (data: Partial<T>[]) => void;
+  updateList: (data: T[]) => void;
+  setInstance: (instance: T) => void;
+  updateInstance: (instance: T) => void;
+  deleteInstance: (instance: T) => void;
+}
+& ('state' extends keyof C ? {
+    patchState: (subState: Partial<C['state'] & {}>) => void;
+  } : {})
+& ('pagination' extends keyof C ? {
+    setPagination: (partial: Partial<Pagination>) => void;
+  } : {})
+& ('select' extends keyof C ? {
+    setSelectedIds: (ids: string[]) => void;
+  } : {});
 
 export type CrudStore<
   T,
   K extends string,
   C extends Config<K, T>,
   V extends ValidatedConfig<K, T, C>
-> = UseBoundStore<StoreApi<CrudState<T, Config<K, T>['state']>>> & {
+> = {
+  // Zustand hook — selectors use internal full state type
+  (): CrudState<T, C['state'] & {}>;
+  <U>(selector: (state: CrudState<T, C['state'] & {}>) => U): U;
+  // StoreApi — getState returns conditional public type
+  getState: () => ResolvedCrudState<T, K, C>;
+  getInitialState: () => ResolvedCrudState<T, K, C>;
+  setState: StoreApi<CrudState<T, C['state'] & {}>>['setState'];
+  subscribe: StoreApi<CrudState<T, C['state'] & {}>>['subscribe'];
+  // Store metadata
   key: K;
   config: V;
   rawConfig: C;
-} & CrudStoreMethods<T, Config<K, T>['state'] & {}>;
+} & CrudStoreMethods<T, K, C>;
 
 export function createStoreRegistry<Models extends Record<string, any>>() {
   const storeRegistry: {
@@ -165,7 +213,7 @@ export function createStoreRegistry<Models extends Record<string, any>>() {
         }));
 
       const s = zustandStore.getState();
-      const store: CrudStore<Models[K], K, C, typeof validated> = Object.assign(
+      const store = Object.assign(
         zustandStore,
         {
           key, config: validated, rawConfig: rawConfig,
@@ -179,7 +227,7 @@ export function createStoreRegistry<Models extends Record<string, any>>() {
           setSelectedIds: s.setSelectedIds,
           patchState: s.patchState,
         },
-      );
+      ) as unknown as CrudStore<Models[K], K, C, typeof validated>;
 
       storeRegistry[key] = store;
     }

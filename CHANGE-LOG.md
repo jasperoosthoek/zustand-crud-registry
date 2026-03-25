@@ -95,3 +95,6 @@
 
 ##### Version 0.2.7
 - Track `id` (detailKey value) in loading state during `get` and custom actions (previously only `update`/`delete`)
+
+##### Version 0.2.8
+- Conditional store types: `state`/`patchState`, `pagination`/`setPagination`, and `selectedIds`/`setSelectedIds` now only appear on `getState()` and direct store methods when configured
