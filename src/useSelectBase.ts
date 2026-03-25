@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import type { CrudStore } from "./createStoreRegistry";
+import type { CrudStore, CrudState } from "./createStoreRegistry";
 import type { Config, ValidatedConfig } from "./config";
 
 export const toId = <T>(instanceOrId: T | string | number, id: string): string =>
@@ -42,6 +42,9 @@ export function useSelectBase<T, K extends string, C extends Config<K, T>>(
 ): SelectResultBase<T> {
   const { id } = store.config;
   const selectMode = store.config.select;
+  // Internal full-state access — selectedIds/setSelectedIds are conditional on
+  // CrudStore but always exist on the underlying Zustand store
+  const _getState = store.getState as () => CrudState<T, any>;
 
   const data = store((s) => s.data);
   const selectedIds = store((s) => s.selectedIds);
@@ -57,7 +60,7 @@ export function useSelectBase<T, K extends string, C extends Config<K, T>>(
 
   const select = useCallback(
     (instanceOrId: T | string | number | null) => {
-      store.getState().setSelectedIds(
+      _getState().setSelectedIds(
         instanceOrId !== null ? [toId(instanceOrId, id)] : []
       );
     },
@@ -67,14 +70,14 @@ export function useSelectBase<T, K extends string, C extends Config<K, T>>(
   const toggle = useCallback(
     (instanceOrId: T | string | number) => {
       const toggleId = toId(instanceOrId, id);
-      const current = store.getState().selectedIds;
+      const current = _getState().selectedIds;
 
       if (selectMode === 'single') {
-        store.getState().setSelectedIds(
+        _getState().setSelectedIds(
           current.includes(toggleId) ? [] : [toggleId]
         );
       } else {
-        store.getState().setSelectedIds(
+        _getState().setSelectedIds(
           current.includes(toggleId)
             ? current.filter((i: string) => i !== toggleId)
             : [...current, toggleId]
@@ -85,7 +88,7 @@ export function useSelectBase<T, K extends string, C extends Config<K, T>>(
   );
 
   const clear = useCallback(
-    () => store.getState().setSelectedIds([]),
+    () => _getState().setSelectedIds([]),
     [store]
   );
 
