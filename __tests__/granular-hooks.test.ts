@@ -1079,7 +1079,7 @@ describe('granular hooks', () => {
 
     it('should handle paginated response format', async () => {
       const mockAxiosFn = jest.fn().mockResolvedValueOnce({
-        data: { results: mockUsers, count: 100 },
+        data: { data: mockUsers, count: 100 },
       });
 
       const store = getOrCreateStore('users-usegetlist-paginated', {

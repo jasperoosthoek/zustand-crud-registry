@@ -81,11 +81,14 @@ export const defaultPagination: Pagination = { count: 0, offset: 0, limit: 0 };
 export type PreparePagination = (responseData: any) => Partial<Pagination>;
 export type PreparePaginationParams = (pagination: Pagination) => Record<string, any>;
 
+export type ExtractList = (responseData: any) => any[];
+
 export type PaginationInputConfig = {
   limit?: number;
   offset?: number;
   prepare?: PreparePagination;
   prepareParams?: PreparePaginationParams;
+  extractList?: ExtractList;
 }
 
 export type PaginationConfig = {
@@ -93,6 +96,7 @@ export type PaginationConfig = {
   offset: number;
   prepare?: PreparePagination;
   prepareParams?: PreparePaginationParams;
+  extractList?: ExtractList;
 }
 
 export type State<T> = {
