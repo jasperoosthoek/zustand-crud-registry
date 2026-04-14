@@ -98,3 +98,6 @@
 
 ##### Version 0.2.8
 - Conditional store types: `state`/`patchState`, `pagination`/`setPagination`, and `selectedIds`/`setSelectedIds` now only appear on `getState()` and direct store methods when configured
+
+##### Version 0.3.0
+- **Breaking:** Change default paginated list key from `results` to `data`, add configurable `extractList` to pagination config

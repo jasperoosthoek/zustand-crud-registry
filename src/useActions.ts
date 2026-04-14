@@ -174,7 +174,8 @@ export function useActions<
           await state.setInstance(response.data);
 
         } else if (actionKey === 'getList') {
-          const results = Array.isArray(response.data) ? response.data : response.data.results;
+          const extractList = paginationConfig?.extractList || ((d: any) => d.data);
+          const results = Array.isArray(response.data) ? response.data : extractList(response.data);
           await state.setList(results);
           if (paginationConfig?.prepare) {
             await state.setPagination(paginationConfig.prepare(response.data));

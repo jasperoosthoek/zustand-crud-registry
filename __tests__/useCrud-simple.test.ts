@@ -261,10 +261,10 @@ describe('useCrud - Simple Coverage Tests', () => {
 
       const mockUsers = [{ id: 1, name: 'John', email: 'john@test.com' }];
 
-      // Test paginated response format
+      // Test paginated response format (default extractList uses 'data' key)
       mockAxios.mockResolvedValueOnce({
         data: {
-          results: mockUsers,
+          data: mockUsers,
           count: 10
         }
       });
