@@ -22,7 +22,12 @@ export type AsyncFuncProps = {
 
 export type onResponse = { onResponse?: (data: any) => void };
 
-type ActionProps = Prettify<onResponse & LoadingStateValue>;
+export type ActionProps = Prettify<onResponse & LoadingStateValue>;
+
+export type InferActionData<A> =
+  A extends { route: (data: infer D, ...args: any[]) => any } ? D
+  : A extends { prepare: (data: infer D, ...args: any[]) => any } ? D
+  : any;
 
 export type CustomActionFunction<T> = ((data?: any, args?: AsyncFuncProps) => Promise<T | void>) & ActionProps
 
@@ -36,7 +41,9 @@ export type ActionFunctions<T> = {
 };
 
 export type CustomActionFunctions<T, C extends ValidConfig<T>> = {
-  [K in keyof C['customActions']]: CustomActionFunction<T>;
+  [K in keyof C['customActions']]: (
+    (data?: InferActionData<C['customActions'][K]>, args?: AsyncFuncProps) => Promise<T | void>
+  ) & ActionProps;
 };
 
 type ConditionalActionFunctions<

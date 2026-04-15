@@ -4,7 +4,7 @@ import { useSelectBase } from "./useSelectBase";
 
 import type { CrudStore } from "./createStoreRegistry";
 import type { Config, ValidatedConfig, ValidConfig, Pagination, Prettify } from "./config"
-import type { CustomActionFunctions, ActionFunctions } from "./useActions";
+import type { CustomActionFunctions, ActionFunctions, InferActionData, ActionProps, AsyncFuncProps } from "./useActions";
 
 type ConditionalActionFunctions<
   T,
@@ -52,6 +52,14 @@ type SelectFields<T, C> = 'select' extends keyof C
     }
   : {};
 
+// Typed custom actions — infer data param from route function in original config C
+// (ValidatedConfig erases the specific route types, so we read from C directly)
+type TypedCustomActionFunctions<T, C> = C extends { customActions: infer CA }
+  ? { [K in keyof CA]: (
+      (data?: InferActionData<CA[K]>, args?: AsyncFuncProps) => Promise<T | void>
+    ) & ActionProps }
+  : {};
+
 export type UseCrudReturn<Store> = (
   Store extends CrudStore<infer T, infer K, infer C, infer _V>
     ? Prettify<
@@ -59,7 +67,7 @@ export type UseCrudReturn<Store> = (
         & ListFields<T, C>
         & PaginationFields<C>
         & StateFields<C, C['state']>
-        & CustomActionFunctions<T, ValidatedConfig<K, T, C>>
+        & TypedCustomActionFunctions<T, C>
         & RecordFields<T, C>
         & SelectFields<T, C>
         & InstanceFields<T, C>

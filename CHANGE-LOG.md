@@ -101,3 +101,6 @@
 
 ##### Version 0.3.0
 - **Breaking:** Change default paginated list key from `results` to `data`, add configurable `extractList` to pagination config
+
+##### Version 0.3.1
+- Infer custom action `data` parameter type from typed `route` or `prepare` functions
