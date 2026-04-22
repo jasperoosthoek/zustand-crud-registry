@@ -41,9 +41,12 @@ const _cIsLoading: boolean = result.create.isLoading;
 const _uIsLoading: boolean = result.update.isLoading;
 const _dIsLoading: boolean = result.delete.isLoading;
 
-// onResponse is optional on action functions
-const _glOnResponse: ((data: any) => void) | undefined = result.getList.onResponse;
-const _gOnResponse: ((data: any) => void) | undefined = result.get.onResponse;
+// onResponse is optional on action functions — receives (data, context)
+const _glOnResponse: ((data: any, context: any) => void) | undefined = result.getList.onResponse;
+const _gOnResponse: ((data: any, context: any) => void) | undefined = result.get.onResponse;
+
+// Backwards compat — a (data) => void handler is still assignable (fewer params → more)
+result.getList.onResponse = (data) => { void data; };
 
 // ── Custom action functions ────────────────────────────────────────
 
@@ -55,7 +58,7 @@ const _restoreReturn: Promise<Item | void> = result.restore('some-data');
 const _archiveIsLoading: boolean = result.archive.isLoading;
 const _archiveError: any = result.archive.error;
 const _archiveSequence: number = result.archive.sequence;
-const _archiveOnResponse: ((data: any) => void) | undefined = result.archive.onResponse;
+const _archiveOnResponse: ((data: any, context: any) => void) | undefined = result.archive.onResponse;
 
 // ── Action call signatures ─────────────────────────────────────────
 
@@ -170,6 +173,39 @@ both.send({ task_id: 1 });
 type TypedReturn = UseCrudReturn<typeof typedStore>;
 const _typedReturn: TypedReturn = typed;
 const _approveFn: ((data?: Task, args?: any) => Promise<Task | void>) = typed.approve;
+
+// Typed onResponse — context.data is Task (inferred from route)
+typed.approve.onResponse = (response, context) => {
+  const _ctxData: Task = context.data;
+  const _args: any = context.args;
+  const _params: any = context.params;
+  // Negative assertion — context.data must NOT be widened to any.
+  // If `context.data` is `any`, assigning it to `string` would compile, making
+  // the directive unused → tsc fails. If it's `Task`, the assignment errors and
+  // the directive correctly suppresses it.
+  // @ts-expect-error — Task is not assignable to string (catches any-widening)
+  const _notString: string = context.data;
+  void response; void _ctxData; void _args; void _params; void _notString;
+};
+
+// Typed per-call callback — context.data is Task
+typed.approve({ id: 1, status: 'pending' }, {
+  callback: (response, context) => {
+    const _ctxData: Task = context.data;
+    // @ts-expect-error — Task is not assignable to string (catches any-widening)
+    const _notString: string = context.data;
+    void response; void _ctxData; void _notString;
+  },
+});
+
+// getList — context has no data field
+const _glOnResponse2: typeof typed.getList.onResponse = (response, context) => {
+  const _args: any = context.args;
+  const _params: any = context.params;
+  // @ts-expect-error — ListCallbackContext has no `data` field
+  context.data;
+  void response; void _args; void _params;
+};
 
 // Loading state still works on typed custom actions
 const _resendIsLoading: boolean = typed.approve.isLoading;

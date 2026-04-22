@@ -29,7 +29,16 @@ interface PrepareDataResponseOptions extends PrepareResponseOptions {
 }
 
 export type DetailPrepare = (instance: any) => any;
-export type Callback = (responseData: any) => void;
+
+// Callback context — `data` is the input passed to the action; omitted for getList
+export type CallbackContext<D = any> = { data: D; args: any; params: any };
+export type ListCallbackContext = { args: any; params: any };
+
+export type Callback<D = any> = (responseData: any, context: CallbackContext<D>) => void;
+export type ListCallback = (responseData: any, context: ListCallbackContext) => void;
+
+export type OnResponse<D = any> = (responseData: any, context: CallbackContext<D>) => void;
+export type ListOnResponse = (responseData: any, context: ListCallbackContext) => void;
 
 export type AsyncFunction<T> = {
   callback: Callback,
@@ -40,7 +49,10 @@ export type AsyncFunction<T> = {
   route: Route;
 }
 
-export interface AsyncListFunction<T> extends Omit<AsyncFunction<T>, 'prepare'> {}
+export interface AsyncListFunction<T> extends Omit<AsyncFunction<T>, 'prepare' | 'callback' | 'onResponse'> {
+  callback: ListCallback,
+  onResponse: ListOnResponse | null,
+}
 export interface AsyncDetailFunction<T> extends Omit<AsyncFunction<T>, 'prepare'> {
   prepare: DetailPrepare | null,
 };
@@ -50,9 +62,6 @@ export type CreateConfig<T> = AsyncDetailFunction<T>;
 export type GetConfig<T> = AsyncDetailFunction<T>;
 export type UpdateConfig<T> = AsyncDetailFunction<T>;
 export type DeleteConfig<T> = AsyncFunction<T>;
-
-export type OnResponseOptions = PrepareDataResponseOptions;
-export type OnResponse = (responseData: any, options: OnResponseOptions) => void;
 
 export interface ValidCustomActionConfig<T> extends AsyncFunction<T> {}
 

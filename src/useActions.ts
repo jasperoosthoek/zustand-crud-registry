@@ -4,7 +4,7 @@ import { defaultLoadingState, initiateAction, finishAction, actionError, getLoad
 import type { AxiosRequestConfig, Method } from 'axios'
 import type { LoadingStateValue } from "./loadingState";
 import type { CrudStore, CrudState } from "./createStoreRegistry";
-import type { Config, ValidatedConfig, ValidConfig, AsyncFunction, Route, Prettify } from "./config"
+import type { Config, ValidatedConfig, ValidConfig, AsyncFunction, Route, Prettify, CallbackContext, ListCallbackContext } from "./config"
 
 export const callIfFunc = (func: any, ...params: any[]) => {
   if (typeof func === 'function') {
@@ -12,17 +12,29 @@ export const callIfFunc = (func: any, ...params: any[]) => {
   }
 }
 
-export type AsyncFuncProps = {
+// Per-call props for detail/custom actions — callback receives context.data typed as D
+export type AsyncFuncProps<D = any> = {
   params?: any;
-  callback?: (data: any) => void;
+  callback?: (data: any, context: CallbackContext<D>) => void;
   onError?: (error: any) => void;
   axiosConfig?: Partial<AxiosRequestConfig>;
   args?: any;
 }
 
-export type onResponse = { onResponse?: (data: any) => void };
+// Per-call props for getList — callback context has no data field
+export type ListAsyncFuncProps = {
+  params?: any;
+  callback?: (data: any, context: ListCallbackContext) => void;
+  onError?: (error: any) => void;
+  axiosConfig?: Partial<AxiosRequestConfig>;
+  args?: any;
+}
 
-export type ActionProps = Prettify<onResponse & LoadingStateValue>;
+export type onResponse<D = any> = { onResponse?: (data: any, context: CallbackContext<D>) => void };
+export type listOnResponse = { onResponse?: (data: any, context: ListCallbackContext) => void };
+
+export type ActionProps<D = any> = Prettify<onResponse<D> & LoadingStateValue>;
+export type ListActionProps = Prettify<listOnResponse & LoadingStateValue>;
 
 export type InferActionData<A> =
   A extends { route: (data: infer D, ...args: any[]) => any } ? D
@@ -33,17 +45,17 @@ export type CustomActionFunction<T> = ((data?: any, args?: AsyncFuncProps) => Pr
 
 export type ActionFunctions<T> = {
   get: ((data: any, args?: AsyncFuncProps) => Promise<T | void>) & ActionProps;
-  getList: ((args?: AsyncFuncProps) => Promise<T[] | void>) & ActionProps;
-  create: ((instance: Partial<T>, args?: AsyncFuncProps) => Promise<T | void>) & ActionProps;
-  update: ((instance: Partial<T>, args?: AsyncFuncProps) => Promise<T | void>) & ActionProps;
-  delete: ((instance: Partial<T>, args?: AsyncFuncProps) => Promise<void>) & ActionProps;
+  getList: ((args?: ListAsyncFuncProps) => Promise<T[] | void>) & ListActionProps;
+  create: ((instance: Partial<T>, args?: AsyncFuncProps<Partial<T>>) => Promise<T | void>) & ActionProps<Partial<T>>;
+  update: ((instance: Partial<T>, args?: AsyncFuncProps<Partial<T>>) => Promise<T | void>) & ActionProps<Partial<T>>;
+  delete: ((instance: Partial<T>, args?: AsyncFuncProps<Partial<T>>) => Promise<void>) & ActionProps<Partial<T>>;
   custom: CustomActionFunction<T>;
 };
 
 export type CustomActionFunctions<T, C extends ValidConfig<T>> = {
   [K in keyof C['customActions']]: (
-    (data?: InferActionData<C['customActions'][K]>, args?: AsyncFuncProps) => Promise<T | void>
-  ) & ActionProps;
+    (data?: InferActionData<C['customActions'][K]>, args?: AsyncFuncProps<InferActionData<C['customActions'][K]>>) => Promise<T | void>
+  ) & ActionProps<InferActionData<C['customActions'][K]>>;
 };
 
 type ConditionalActionFunctions<
@@ -109,7 +121,8 @@ export function useActions<
       const { isLoading } = getLoadingState(store, loadingStateKey);
       if (isLoading) return;
 
-      const data = funcArgs[0];
+      const isListAction = actionKey === 'getList';
+      const data = isListAction ? undefined : funcArgs[0];
       const {
         params,
         callback,
@@ -199,10 +212,13 @@ export function useActions<
           await state.deleteInstance(data)
         }
 
-        callIfFunc(configOnResponse, responseData, { data, args, params });
-        callIfFunc(act.onResponse, responseData);
-        callIfFunc(actionCallback, responseData);
-        callIfFunc(callback, responseData);
+        const context = isListAction
+          ? { args, params } as ListCallbackContext
+          : { data, args, params } as CallbackContext;
+        callIfFunc(configOnResponse, responseData, context);
+        callIfFunc(act.onResponse, responseData, context);
+        callIfFunc(actionCallback, responseData, context);
+        callIfFunc(callback, responseData, context);
 
         await finishAction(store, loadingStateKey, responseData, id);
 

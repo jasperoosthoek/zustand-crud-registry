@@ -91,7 +91,10 @@ describe('useCrud - Simple Coverage Tests', () => {
         await result.current.getList({ callback: mockCallback });
       });
 
-      expect(mockCallback).toHaveBeenCalledWith(mockUsers);
+      expect(mockCallback).toHaveBeenCalledWith(
+        mockUsers,
+        { args: undefined, params: undefined },
+      );
     });
 
     it('should handle action errors', async () => {
@@ -331,7 +334,10 @@ describe('useCrud - Simple Coverage Tests', () => {
         await result.current.getList();
       });
 
-      expect(onResponseCallback).toHaveBeenCalledWith(mockUsers);
+      expect(onResponseCallback).toHaveBeenCalledWith(
+        mockUsers,
+        { args: undefined, params: undefined },
+      );
     });
 
     it('should execute action callback from config', async () => {
@@ -359,7 +365,10 @@ describe('useCrud - Simple Coverage Tests', () => {
         await result.current.getList();
       });
 
-      expect(actionCallback).toHaveBeenCalledWith(mockUsers);
+      expect(actionCallback).toHaveBeenCalledWith(
+        mockUsers,
+        { args: undefined, params: undefined },
+      );
     });
   });
 

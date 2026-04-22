@@ -246,9 +246,259 @@ describe('useCrud', () => {
       expect(onResponseMock).toHaveBeenCalledWith(
         users,
         {
-          data: { params: { active: true } },
           args: undefined,
           params: { active: true },
+        },
+      );
+    });
+  });
+
+  describe('callback context — all four callback slots receive { data, args, params }', () => {
+    it('should pass context to act.onResponse for custom action', async () => {
+      const onResponseMock = jest.fn();
+      const responsePayload = { id: 1, name: 'John', active: true };
+
+      const mockAxiosFn = jest.fn().mockResolvedValueOnce({ data: responsePayload });
+      Object.assign(mockAxiosFn, mockAxios);
+
+      const ctxStore = getOrCreateStore('usersActOnResponse', {
+        axios: mockAxiosFn as any,
+        route: '/users',
+        actions: { getList: true },
+        customActions: {
+          activate: {
+            route: (u: TestUser) => `/users/${u.id}/activate`,
+            method: 'post' as const,
+          },
+        },
+      });
+
+      const { result } = renderHook(() => useCrud(ctxStore));
+
+      act(() => {
+        (result.current.activate as any).onResponse = onResponseMock;
+      });
+
+      await act(async () => {
+        await (result.current.activate as any)(
+          { id: 1, name: 'John', email: 'john@example.com' },
+          { args: { reason: 'test' }, params: { notify: true } },
+        );
+      });
+
+      expect(onResponseMock).toHaveBeenCalledWith(
+        responsePayload,
+        {
+          data: { id: 1, name: 'John', email: 'john@example.com' },
+          args: { reason: 'test' },
+          params: { notify: true },
+        },
+      );
+    });
+
+    it('should pass context to action-level callback (config)', async () => {
+      const callbackMock = jest.fn();
+      const responsePayload = { id: 2, name: 'Jane', active: false };
+
+      const mockAxiosFn = jest.fn().mockResolvedValueOnce({ data: responsePayload });
+      Object.assign(mockAxiosFn, mockAxios);
+
+      const ctxStore = getOrCreateStore('usersActionCallback', {
+        axios: mockAxiosFn as any,
+        route: '/users',
+        actions: { getList: true },
+        customActions: {
+          deactivate: {
+            route: (u: TestUser) => `/users/${u.id}/deactivate`,
+            method: 'post' as const,
+            callback: callbackMock,
+          },
+        },
+      });
+
+      const { result } = renderHook(() => useCrud(ctxStore));
+
+      await act(async () => {
+        await (result.current.deactivate as any)(
+          { id: 2, name: 'Jane', email: 'jane@example.com' },
+          { args: { reason: 'expired' }, params: { force: false } },
+        );
+      });
+
+      expect(callbackMock).toHaveBeenCalledWith(
+        responsePayload,
+        {
+          data: { id: 2, name: 'Jane', email: 'jane@example.com' },
+          args: { reason: 'expired' },
+          params: { force: false },
+        },
+      );
+    });
+
+    it('should pass context to per-call callback (AsyncFuncProps)', async () => {
+      const callbackMock = jest.fn();
+      const responsePayload = { id: 3, name: 'Sam', active: true };
+
+      const mockAxiosFn = jest.fn().mockResolvedValueOnce({ data: responsePayload });
+      Object.assign(mockAxiosFn, mockAxios);
+
+      const ctxStore = getOrCreateStore('usersPerCallCallback', {
+        axios: mockAxiosFn as any,
+        route: '/users',
+        actions: { getList: true },
+        customActions: {
+          ping: {
+            route: (u: TestUser) => `/users/${u.id}/ping`,
+            method: 'post' as const,
+          },
+        },
+      });
+
+      const { result } = renderHook(() => useCrud(ctxStore));
+
+      await act(async () => {
+        await (result.current.ping as any)(
+          { id: 3, name: 'Sam', email: 'sam@example.com' },
+          {
+            callback: callbackMock,
+            args: { source: 'cron' },
+            params: { silent: true },
+          },
+        );
+      });
+
+      expect(callbackMock).toHaveBeenCalledWith(
+        responsePayload,
+        {
+          data: { id: 3, name: 'Sam', email: 'sam@example.com' },
+          args: { source: 'cron' },
+          params: { silent: true },
+        },
+      );
+    });
+
+    it('should pass same context to all four callback slots simultaneously', async () => {
+      const configOnResponseMock = jest.fn();
+      const actOnResponseMock = jest.fn();
+      const actionCallbackMock = jest.fn();
+      const perCallCallbackMock = jest.fn();
+
+      const responsePayload = { id: 4, name: 'Pat', active: true };
+
+      const mockAxiosFn = jest.fn().mockResolvedValueOnce({ data: responsePayload });
+      Object.assign(mockAxiosFn, mockAxios);
+
+      const ctxStore = getOrCreateStore('usersAllFour', {
+        axios: mockAxiosFn as any,
+        route: '/users',
+        actions: { getList: true },
+        customActions: {
+          fire: {
+            route: (u: TestUser) => `/users/${u.id}/fire`,
+            method: 'post' as const,
+            onResponse: configOnResponseMock,
+            callback: actionCallbackMock,
+          },
+        },
+      });
+
+      const { result } = renderHook(() => useCrud(ctxStore));
+
+      act(() => {
+        (result.current.fire as any).onResponse = actOnResponseMock;
+      });
+
+      const inputData = { id: 4, name: 'Pat', email: 'pat@example.com' };
+      const expectedContext = {
+        data: inputData,
+        args: { foo: 'bar' },
+        params: { q: 1 },
+      };
+
+      await act(async () => {
+        await (result.current.fire as any)(
+          inputData,
+          {
+            callback: perCallCallbackMock,
+            args: { foo: 'bar' },
+            params: { q: 1 },
+          },
+        );
+      });
+
+      // All four should receive (responseData, { data, args, params })
+      expect(configOnResponseMock).toHaveBeenCalledWith(responsePayload, expectedContext);
+      expect(actOnResponseMock).toHaveBeenCalledWith(responsePayload, expectedContext);
+      expect(actionCallbackMock).toHaveBeenCalledWith(responsePayload, expectedContext);
+      expect(perCallCallbackMock).toHaveBeenCalledWith(responsePayload, expectedContext);
+    });
+
+    it('should pass ListCallbackContext (no data field) for getList', async () => {
+      const onResponseMock = jest.fn();
+      const users = [{ id: 1, name: 'John', email: 'john@example.com' }];
+
+      const mockAxiosFn = jest.fn().mockResolvedValueOnce({ data: users });
+      Object.assign(mockAxiosFn, mockAxios);
+
+      const ctxStore = getOrCreateStore('usersGetListNoData', {
+        axios: mockAxiosFn as any,
+        route: '/users',
+        actions: {
+          getList: { onResponse: onResponseMock },
+        },
+      });
+
+      const { result } = renderHook(() => useCrud(ctxStore));
+
+      await act(async () => {
+        await result.current.getList({ args: { foo: 'bar' }, params: { q: 1 } });
+      });
+
+      // getList context has no data field — only args and params
+      expect(onResponseMock).toHaveBeenCalledWith(
+        users,
+        {
+          args: { foo: 'bar' },
+          params: { q: 1 },
+        },
+      );
+      const actualContext = onResponseMock.mock.calls[0][1];
+      expect('data' in actualContext).toBe(false);
+    });
+
+    it('should pass context with undefined args/params when not provided', async () => {
+      const onResponseMock = jest.fn();
+      const responsePayload = { id: 5, name: 'Lee' };
+
+      const mockAxiosFn = jest.fn().mockResolvedValueOnce({ data: responsePayload });
+      Object.assign(mockAxiosFn, mockAxios);
+
+      const ctxStore = getOrCreateStore('usersNoExtras', {
+        axios: mockAxiosFn as any,
+        route: '/users',
+        actions: { getList: true },
+        customActions: {
+          bump: {
+            route: (u: TestUser) => `/users/${u.id}/bump`,
+            method: 'post' as const,
+            onResponse: onResponseMock,
+          },
+        },
+      });
+
+      const { result } = renderHook(() => useCrud(ctxStore));
+
+      const inputData = { id: 5, name: 'Lee', email: 'lee@example.com' };
+      await act(async () => {
+        await (result.current.bump as any)(inputData);
+      });
+
+      expect(onResponseMock).toHaveBeenCalledWith(
+        responsePayload,
+        {
+          data: inputData,
+          args: undefined,
+          params: undefined,
         },
       );
     });

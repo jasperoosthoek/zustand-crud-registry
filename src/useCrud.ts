@@ -56,8 +56,8 @@ type SelectFields<T, C> = 'select' extends keyof C
 // (ValidatedConfig erases the specific route types, so we read from C directly)
 type TypedCustomActionFunctions<T, C> = C extends { customActions: infer CA }
   ? { [K in keyof CA]: (
-      (data?: InferActionData<CA[K]>, args?: AsyncFuncProps) => Promise<T | void>
-    ) & ActionProps }
+      (data?: InferActionData<CA[K]>, args?: AsyncFuncProps<InferActionData<CA[K]>>) => Promise<T | void>
+    ) & ActionProps<InferActionData<CA[K]>> }
   : {};
 
 export type UseCrudReturn<Store> = (

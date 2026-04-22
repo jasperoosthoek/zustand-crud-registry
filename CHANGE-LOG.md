@@ -104,3 +104,6 @@
 
 ##### Version 0.3.1
 - Infer custom action `data` parameter type from typed `route` or `prepare` functions
+
+##### Version 0.3.2
+- Pass `context` ({ data, args, params }) to all action callbacks (`onResponse`, `callback`); `getList` receives context without `data`
